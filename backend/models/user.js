@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
 
   email: { type: String, required: true, unique: true },
 
-  password: { type: String, required: true }, // hashed password
+  password: { type: String, required: true }, 
 
   role: {
     type: String,
@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
     required: true
   },
 
-  // === Student fields ===
+  // Student fields
   profileImage: String,
   bio: String,
   skills: [String],
@@ -21,7 +21,7 @@ const userSchema = new mongoose.Schema({
   pricing: Number,
   availability: String,
 
-  // === Client fields ===
+  //Client fields
   orgName: String,
   orgDescription: String,
 
