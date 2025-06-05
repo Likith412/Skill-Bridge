@@ -2,6 +2,7 @@ const express = require("express");
 require("dotenv").config();
 
 const app = express();
+const PORT = process.env.PORT || 8000;
 
 app.use(express.json());
 
@@ -15,6 +16,9 @@ app.get("/api/users", (req, res) => {
 });
 
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server Running at http://localhost:${process.env.PORT}`);
+app.listen(PORT, () => {
+  console.log(`Server Running at http://localhost:${PORT}`);
+});
+app.get("/", (req, res) => {
+  res.send("Backend server is running!");
 });
