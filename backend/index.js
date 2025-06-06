@@ -4,6 +4,7 @@ require("dotenv").config();
 const { connectToMongoDB } = require("./connection");
 const userRouter = require("./routes/user");
 const projectRouter = require("./routes/project");
+const { authenticateUser } = require("./middlewares/auth");
 
 const app = express();
 
@@ -17,7 +18,7 @@ app.use(express.json());
 
 // Router Registrations
 app.use("/api/users", userRouter);
-app.use("/api/projects", projectRouter);
+app.use("/api/projects", authenticateUser, projectRouter);
 
 const PORT = process.env.PORT || 8000;
 
