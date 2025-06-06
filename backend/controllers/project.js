@@ -1,9 +1,5 @@
 const Project = require("../models/project");
 
-
-
-
-
 async function handleCreateProject(req, res) {
   if (!req.body) {
     return res.status(400).json({ message: "Request body is missing." });
@@ -19,15 +15,11 @@ async function handleCreateProject(req, res) {
     clientId,
   } = req.body;
 
-  // Basic field validations
-  if (!req.body) {
-    return res.status(400).json({ message: "Request body is missing." });
-  }
-
   if (!title || !description || !budget || !deadline || !clientId) {
-    return res
-      .status(400)
-      .json({ message: "Title, description, budget, deadline, and client ID are required." });
+    return res.status(400).json({
+      message:
+        "Title, description, budget, deadline, and client ID are required.",
+    });
   }
 
   if (isNaN(budget)) {
@@ -38,7 +30,10 @@ async function handleCreateProject(req, res) {
     return res.status(400).json({ message: "Invalid deadline format." });
   }
 
-  if (status && !["open", "in-progress", "completed", "cancelled"].includes(status)) {
+  if (
+    status &&
+    !["open", "in-progress", "completed", "cancelled"].includes(status)
+  ) {
     return res.status(400).json({ message: "Invalid project status." });
   }
 
@@ -82,12 +77,7 @@ async function handleGetProjects(req, res) {
   }
 }
 
-
-
-
-
-
-async function handleGetProjectById(req, res) {
+async function handleGetSpecificProject(req, res) {
   try {
     const project = await Project.findById(req.params.id);
     if (!project) {
@@ -100,22 +90,13 @@ async function handleGetProjectById(req, res) {
   }
 }
 
-
-
-
-async function handleUpdateProject(req, res) {
+async function handleUpdateSpecificProject(req, res) {
   if (!req.body) {
     return res.status(400).json({ message: "Request body is missing." });
   }
 
-  const {
-    title,
-    description,
-    budget,
-    deadline,
-    requiredSkills,
-    status,
-  } = req.body;
+  const { title, description, budget, deadline, requiredSkills, status } =
+    req.body;
 
   // Basic field validations
   if (budget && isNaN(budget)) {
@@ -126,7 +107,10 @@ async function handleUpdateProject(req, res) {
     return res.status(400).json({ message: "Invalid deadline format." });
   }
 
-  if (status && !["open", "in-progress", "completed", "cancelled"].includes(status)) {
+  if (
+    status &&
+    !["open", "in-progress", "completed", "cancelled"].includes(status)
+  ) {
     return res.status(400).json({ message: "Invalid project status." });
   }
 
@@ -151,11 +135,7 @@ async function handleUpdateProject(req, res) {
   }
 }
 
-
-
-
-
-async function handleDeleteProject(req, res) {
+async function handleDeleteSpecificProject(req, res) {
   try {
     const deletedProject = await Project.findByIdAndDelete(req.params.id);
     if (!deletedProject) {
@@ -168,14 +148,10 @@ async function handleDeleteProject(req, res) {
   }
 }
 
-
-
-
-
 module.exports = {
   handleCreateProject,
   handleGetProjects,
-  handleGetProjectById,
-  handleUpdateProject,
-  handleDeleteProject,
+  handleGetSpecificProject,
+  handleUpdateSpecificProject,
+  handleDeleteSpecificProject,
 };

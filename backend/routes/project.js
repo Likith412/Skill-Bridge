@@ -1,13 +1,22 @@
-const express = require('express');
+const express = require("express");
+
 const {
   handleCreateProject,
   handleGetProjects,
-  handleUpdateProject,
-  handleDeleteProject,
-} = require('../controllers/project');
+  handleGetSpecificProject,
+  handleUpdateSpecificProject,
+  handleDeleteSpecificProject,
+} = require("../controllers/project");
+
 const router = express.Router();
-router.post('/create', handleCreateProject);
-router.get('/getprojects', handleGetProjects);
-router.put('/update/:id', handleUpdateProject);
-router.delete('/delete/:id', handleDeleteProject);
+
+router.route("/").get(handleGetProjects).post(handleCreateProject);
+
+router
+  .route("/:id")
+  .get(handleGetSpecificProject)
+  .delete(handleDeleteSpecificProject);
+
+router.put("/edit/:id", handleUpdateSpecificProject);
+
 module.exports = router;

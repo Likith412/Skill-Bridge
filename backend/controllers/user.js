@@ -17,10 +17,6 @@ async function handleRegisterUser(req, res) {
   } = req.body;
 
   // Basic field validations
-  if (!req.body) {
-    return res.status(400).json({ message: "Request body is missing." });
-  }
-
   if (!username || !email || !password || !role) {
     return res
       .status(400)
