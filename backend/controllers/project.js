@@ -1,4 +1,5 @@
 const Project = require("../models/project");
+const mongoose = require("mongoose");
 
 async function handleCreateProject(req, res) {
   if (!req.body) {
@@ -69,6 +70,18 @@ async function handleCreateProject(req, res) {
 
 async function handleGetProjects(req, res) {
   try {
+    // Optional: Validate if filtering by id in query
+    if (req.query.id) {
+      if (!mongoose.Types.ObjectId.isValid(req.query.id)) {
+        return res.status(400).json({ message: "Invalid project ID format." });
+      }
+      const project = await Project.findById(req.query.id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found." });
+      }
+      return res.status(200).json([project]);
+    }
+
     const projects = await Project.find();
     res.status(200).json(projects);
   } catch (error) {
@@ -78,8 +91,12 @@ async function handleGetProjects(req, res) {
 }
 
 async function handleGetSpecificProject(req, res) {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid project ID format." });
+  }
   try {
-    const project = await Project.findById(req.params.id);
+    const project = await Project.findById(id);
     if (!project) {
       return res.status(404).json({ message: "Project not found." });
     }
@@ -95,8 +112,13 @@ async function handleUpdateSpecificProject(req, res) {
     return res.status(400).json({ message: "Request body is missing." });
   }
 
-  const { title, description, budget, deadline, requiredSkills, status } =
-    req.body;
+  const { title, description, budget, deadline, requiredSkills, status } = req.body;
+
+  // Validate id
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid project ID format." });
+  }
 
   // Basic field validations
   if (budget && isNaN(budget)) {
@@ -107,16 +129,13 @@ async function handleUpdateSpecificProject(req, res) {
     return res.status(400).json({ message: "Invalid deadline format." });
   }
 
-  if (
-    status &&
-    !["open", "in-progress", "completed", "cancelled"].includes(status)
-  ) {
+  if (status && !["open", "in-progress", "completed", "cancelled"].includes(status)) {
     return res.status(400).json({ message: "Invalid project status." });
   }
 
   try {
     const updatedProject = await Project.findByIdAndUpdate(
-      req.params.id,
+      id,
       req.body,
       { new: true }
     );
@@ -136,8 +155,12 @@ async function handleUpdateSpecificProject(req, res) {
 }
 
 async function handleDeleteSpecificProject(req, res) {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid project ID format." });
+  }
   try {
-    const deletedProject = await Project.findByIdAndDelete(req.params.id);
+    const deletedProject = await Project.findByIdAndDelete(id);
     if (!deletedProject) {
       return res.status(404).json({ message: "Project not found." });
     }
