@@ -1,9 +1,9 @@
 const express = require("express");
 
+const { handleRegisterUser } = require("../controllers/user");
+
 const router = express.Router();
 
-router.get("/", (req, res) => {
-  console.log("all users");
-});
+router.post("/", handleRegisterUser);
 
 module.exports = router;
