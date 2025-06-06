@@ -12,7 +12,7 @@ async function handleRegisterUser(req, res) {
       clientProfile = null,
     } = req.body;
 
-    // Basic field validation
+    // Basic field validations
     if (!req.body) {
       return res.status(400).json({ message: "Request body is missing." });
     }
@@ -89,4 +89,6 @@ async function handleRegisterUser(req, res) {
   }
 }
 
-module.exports = { handleRegisterUser };
+async function handleLoginUser(req, res) {}
+
+module.exports = { handleRegisterUser, handleLoginUser };
