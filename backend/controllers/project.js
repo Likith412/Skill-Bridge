@@ -1,72 +1,74 @@
-
 const Project = require("../models/project");
 const User = require("../models/user");
 const mongoose = require("mongoose");
 
 async function handleCreateProject(req, res) {
-    if (!req.body) {
-        return res.status(400).json({ message: "Request body is missing." });
-    }
-    const { title, description, budget, deadline, requiredSkills, status } = req.body;
-    const clientId = req.user._id;
+  if (!req.body) {
+    return res.status(400).json({ message: "Request body is missing." });
+  }
+  const { title, description, budget, deadline, requiredSkills, status } =
+    req.body;
+  const clientId = req.user._id;
 
-    // === Basic Field validations ===
-    if (!title || !description || !budget || !deadline) {
-        return res.status(400).json({
-            message: "Title, description, budget, and deadline are required.",
-        });
-    }
+  // === Basic Field validations ===
+  if (!title || !description || !budget || !deadline) {
+    return res.status(400).json({
+      message: "Title, description, budget, and deadline are required.",
+    });
+  }
 
-    // === Budget validation ===
-    if (isNaN(budget) || budget <= 0) {
-        return res
-            .status(400)
-            .json({ message: "Budget must be a valid positive number." });
-    }
+  // === Budget validation ===
+  if (isNaN(budget) || budget <= 0) {
+    return res
+      .status(400)
+      .json({ message: "Budget must be a valid positive number." });
+  }
 
-    // === Date Validation ===
-    const parsedDeadline = new Date(deadline); // Convert string to Date object
-    if (isNaN(parsedDeadline.getTime())) {
-        // Validate it's a real date
-        return res.status(400).json({ message: "Invalid deadline date." });
-    }
-    if (parsedDeadline <= new Date()) {
-        // Ensure it's a future date
-        return res.status(400).json({ message: "Deadline must be a future date." });
-    }
+  // === Date Validation ===
+  const parsedDeadline = new Date(deadline); // Convert string to Date object
+  if (isNaN(parsedDeadline.getTime())) {
+    // Validate it's a real date
+    return res.status(400).json({ message: "Invalid deadline date." });
+  }
+  if (parsedDeadline <= new Date()) {
+    // Ensure it's a future date
+    return res.status(400).json({ message: "Deadline must be a future date." });
+  }
 
-    // === Status validation ===
-    if (
-        status &&
-        !["open", "in-progress", "completed", "cancelled"].includes(status)
-    ) {
-        return res.status(400).json({ message: "Invalid status value." });
-    }
+  // === Status validation ===
+  if (
+    status &&
+    !["open", "in-progress", "completed", "cancelled"].includes(status)
+  ) {
+    return res.status(400).json({ message: "Invalid status value." });
+  }
 
-    // === Uniqueness check ===
-    const existingProject = await Project.findOne({ title, clientId });
-    if (existingProject) {
-        return res.status(400).json({
-            message: "Project with this title already exists for your account.",
-        });
-    }
+  // === Uniqueness check ===
+  const existingProject = await Project.findOne({ title, clientId });
+  if (existingProject) {
+    return res.status(400).json({
+      message: "Project with this title already exists for your account.",
+    });
+  }
 
-    // === Project creation ===
-    try {
-        const resultProject = await Project.create({
-            title,
-            description,
-            budget,
-            deadline: parsedDeadline,
-            requiredSkills,
-            status: status || "open",
-            clientId,
-        });
-        return res.status(201).json(resultProject);
-    } catch (error) {
-        console.error("Create project error:", error);
-        return res.status(500).json({ message: "Server error while creating project." });
-    }
+  // === Project creation ===
+  try {
+    const resultProject = await Project.create({
+      title,
+      description,
+      budget,
+      deadline: parsedDeadline,
+      requiredSkills,
+      status: status || "open",
+      clientId,
+    });
+    return res.status(201).json(resultProject);
+  } catch (error) {
+    console.error("Create project error:", error);
+    return res
+      .status(500)
+      .json({ message: "Server error while creating project." });
+  }
 }
 async function handleGetProjects(req, res) {
   try {
@@ -75,7 +77,6 @@ async function handleGetProjects(req, res) {
       return res.status(404).json({ message: "User not found." });
     }
 
-    
     const { id } = req.params;
     if (id) {
       if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -96,7 +97,7 @@ async function handleGetProjects(req, res) {
 
     if (status) filters.status = status;
     if (category) filters.category = category;
-    if (title) filters.title = new RegExp(title, 'i'); // case-insensitive search
+    if (title) filters.title = new RegExp(title, "i"); // case-insensitive search
 
     // Role-based restrictions
     if (user.role === "client") {
@@ -109,46 +110,40 @@ async function handleGetProjects(req, res) {
 
     const projects = await Project.find(filters);
     return res.status(200).json(projects);
-
   } catch (error) {
     console.error("Get projects error:", error);
-    return res.status(500).json({ message: "Server error while fetching projects." });
+    return res
+      .status(500)
+      .json({ message: "Server error while fetching projects." });
   }
 }
-
-
-
 
 async function handleGetSpecificProject(req, res) {
   const { id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ 
-      message: "project not found" 
+    return res.status(400).json({
+      message: "project not found",
     });
   }
 
   try {
     const project = await Project.findById(id).lean();
-    
+
     if (!project) {
-      return res.status(404).json({ 
-        message: "Project not found" 
+      return res.status(404).json({
+        message: "Project not found",
       });
     }
 
     return res.status(200).json(project);
-
   } catch (error) {
     console.error("Get project error:", error);
-    return res.status(500).json({ 
-      message: "Server error while fetching project" 
+    return res.status(500).json({
+      message: "Server error while fetching project",
     });
   }
 }
-
-
-
 
 async function handleDeleteSpecificProject(req, res) {
   const { id } = req.params;
@@ -163,7 +158,7 @@ async function handleDeleteSpecificProject(req, res) {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    const isAdmin = req.user.role === 'admin';
+    const isAdmin = req.user.role === "admin";
     const isOwner = project.clientId.toString() === req.user._id.toString();
 
     if (!isAdmin && !isOwner) {
@@ -172,14 +167,11 @@ async function handleDeleteSpecificProject(req, res) {
 
     await Project.findByIdAndDelete(id);
     return res.status(204).end();
-
   } catch (error) {
     console.error("Delete error:", error);
     return res.status(500).json({ message: "Server error during deletion" });
   }
 }
-
-
 
 // UPDATE Project
 async function handleUpdateSpecificProject(req, res) {
@@ -195,8 +187,7 @@ async function handleUpdateSpecificProject(req, res) {
       return res.status(404).json({ message: "Project not found" });
     }
 
-
-    const isAdmin = req.user.role === 'admin';
+    const isAdmin = req.user.role === "admin";
     const isOwner = project.clientId.toString() === req.user._id.toString();
 
     if (!isAdmin && !isOwner) {
@@ -204,20 +195,15 @@ async function handleUpdateSpecificProject(req, res) {
     }
 
     const { clientId, ...updateData } = req.body;
-    
-    const updatedProject = await Project.findByIdAndUpdate(
-      id,
-      updateData,
 
-    );
+    const updatedProject = await Project.findByIdAndUpdate(id, updateData);
 
     return res.status(200).json(updatedProject);
-
   } catch (error) {
     console.error("Update error:", error);
-    
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
+
+    if (error.name === "ValidationError") {
+      const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(400).json({ message: "Validation failed", errors });
     }
 
@@ -231,5 +217,3 @@ module.exports = {
   handleUpdateSpecificProject,
   handleDeleteSpecificProject,
 };
-
-
