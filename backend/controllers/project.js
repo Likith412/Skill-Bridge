@@ -25,7 +25,7 @@ async function handleCreateProject(req, res) {
 
   if (!title || !description || !budget || !deadline) {
     return res.status(400).json({
-      message: "Title, description, budget, and deadline are required.",
+      message: "All fields are required.",
     });
   }
 
@@ -59,7 +59,7 @@ async function handleCreateProject(req, res) {
     if (existingProject) {
       return res
         .status(400)
-        .json({ message: "Project with this title already exists for your account." });
+        .json({ message: "Project with this title already exists" });
     }
 
     // Create new project
@@ -101,7 +101,7 @@ async function handleGetProjects(req, res) {
     const { id } = req.params;
     if (id) {
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({ message: "Invalid project ID format." });
+        return res.status(400).json({ message: "project not found" });
       }
 
       const project = await Project.findById(id);
@@ -146,7 +146,7 @@ async function handleGetSpecificProject(req, res) {
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ 
-      message: "Invalid project ID format" 
+      message: "project not found" 
     });
   }
 
@@ -176,7 +176,7 @@ async function handleDeleteSpecificProject(req, res) {
   const { id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ message: "Invalid project ID" });
+    return res.status(400).json({ message: "project not found" });
   }
 
   try {
@@ -208,7 +208,7 @@ async function handleUpdateSpecificProject(req, res) {
   const { id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ message: "Invalid project ID" });
+    return res.status(400).json({ message: "project not found" });
   }
 
   try {
