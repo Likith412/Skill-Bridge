@@ -16,7 +16,7 @@ async function handleRegisterUser(req, res) {
     clientProfile = null,
   } = req.body;
 
-  // Basic field validations
+  // === Basic field validations ===
   if (!username || !email || !password || !role) {
     return res
       .status(400)
@@ -27,7 +27,7 @@ async function handleRegisterUser(req, res) {
     return res.status(400).json({ message: "Invalid role provided." });
   }
 
-  // Role-based profile validation
+  // === Role-based profile validation ===
   if (role === "student") {
     if (
       !studentProfile ||
@@ -59,7 +59,7 @@ async function handleRegisterUser(req, res) {
   }
 
   try {
-    // Check if user already exists
+    // === Uniqueness check ===
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
       return res
@@ -70,7 +70,7 @@ async function handleRegisterUser(req, res) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user
+    // === Create new user ===
     const resultUser = await User.create({
       username,
       email,
@@ -97,6 +97,7 @@ async function handleLoginUser(req, res) {
 
   const { email, password } = req.body;
 
+  // === Basic field validations ===
   if (!email || !password) {
     return res
       .status(400)
@@ -116,7 +117,7 @@ async function handleLoginUser(req, res) {
       return res.status(400).json({ message: "Incorrect password." });
     }
 
-    // Prepare payload for JWT
+    // === Prepare payload for JWT ===
     const payload = {
       _id: dbUser._id,
       email: dbUser.email,
@@ -124,7 +125,7 @@ async function handleLoginUser(req, res) {
       role: dbUser.role,
     };
 
-    // Generate token
+    // === Generate token ===
     const jwtToken = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
