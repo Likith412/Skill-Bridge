@@ -19,11 +19,12 @@ router
 router
   .route("/:id")
   .get(handleGetSpecificProject) // anyone can view specific project
-  .delete(authorizeUserRoles("client"), handleDeleteSpecificProject); // only client can delete
+  .delete(authorizeUserRoles("client"),authorizeUserRoles("admin"), handleDeleteSpecificProject); // only client and admin can delete
 
 router.put(
   "/edit/:id",
   authorizeUserRoles("client"),
+  authorizeUserRoles("admin"),
   handleUpdateSpecificProject
 ); // only client can update
 
