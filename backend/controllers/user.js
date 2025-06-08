@@ -49,6 +49,7 @@ async function handleRegisterUser(req, res) {
   if (role === "client") {
     if (
       !clientProfile ||
+      !clientProfile.orgName ||
       !clientProfile.orgLogoUrl ||
       !clientProfile.orgDescription
       // socialLinks is optional

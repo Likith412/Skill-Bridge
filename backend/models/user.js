@@ -17,8 +17,9 @@ const StudentProfileSchema = new mongoose.Schema(
 // Client Profile Subschema
 const ClientProfileSchema = new mongoose.Schema(
   {
-    orgLogoUrl: { type: String, required: true },
+    orgName: { type: String, required: true },
     orgDescription: { type: String, required: true },
+    orgLogoUrl: { type: String, required: true },
     socialLinks: {
       linkedin: String,
       twitter: String,
