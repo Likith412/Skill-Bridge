@@ -12,7 +12,7 @@ const projectSchema = new mongoose.Schema(
       enum: ["open", "in-progress", "completed", "cancelled"],
       default: "open",
     },
-    clientId: {
+    createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,

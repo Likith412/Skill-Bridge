@@ -1,62 +1,18 @@
 const Project = require("../models/project");
 const mongoose = require("mongoose");
-
+const { validateProjectInput } = require("../services/projectValidationService");
 async function handleCreateProject(req, res) {
   if (!req.body) {
     return res.status(400).json({ message: "Request body is missing" });
   }
-  const { title, description, budget, deadline, requiredSkills, status } =
-    req.body;
+
   const { _id: userId } = req.user;
+  const { error, numericBudget, parsedDeadline } = await validateProjectInput(req.body, userId);
 
-  // === Basic Field validations ===
-  if (!title || !description || !budget || !deadline || !status) {
-    return res.status(400).json({
-      message: "Title, description, budget, deadline, and status are required",
-    });
-  }
+   if (error) return res.status(400).json({ message: error });
 
-  // === Budget validation ===
-  const numericBudget = Number(budget);
-  if (isNaN(numericBudget) || numericBudget <= 0) {
-    return res
-      .status(400)
-      .json({ message: "Budget must be a valid positive number" });
-  }
+  const { title, description, requiredSkills, status } = req.body;
 
-  // === Date Validation ===
-  const parsedDeadline = new Date(deadline); // Convert string to Date object
-  if (isNaN(parsedDeadline.getTime())) {
-    // Validate it's a real date
-    return res.status(400).json({ message: "Invalid deadline date" });
-  }
-  if (parsedDeadline <= new Date()) {
-    // Ensure it's a future date
-    return res.status(400).json({ message: "Deadline must be a future date" });
-  }
-
-  // === Required skills validation ===
-  if (!Array.isArray(requiredSkills) || requiredSkills.length === 0) {
-    return res.status(400).json({
-      message: "Required skills must be a non-empty array",
-    });
-  }
-
-  // === Status validation ===
-  const allowedStatus = ["open", "in-progress", "completed", "cancelled"];
-  if (!allowedStatus.includes(status)) {
-    return res.status(400).json({ message: "Invalid status value" });
-  }
-
-  // === Uniqueness check ===
-  const existingProject = await Project.findOne({ title, clientId: userId });
-  if (existingProject) {
-    return res.status(400).json({
-      message: "Project with this title already exists for your account",
-    });
-  }
-
-  // === Project creation ===
   try {
     const resultProject = await Project.create({
       title,
@@ -65,17 +21,16 @@ async function handleCreateProject(req, res) {
       deadline: parsedDeadline,
       requiredSkills,
       status,
-      clientId: userId,
+      createdBy: userId,
     });
-    return res.status(201).json({
+
+  return res.status(201).json({
       message: "Project created successfully",
       projectId: resultProject._id,
     });
   } catch (error) {
     console.log("Create project error:", error);
-    return res
-      .status(500)
-      .json({ message: "Server error while creating project" });
+    return res.status(500).json({ message: "Server error while creating project" });
   }
 }
 
@@ -96,7 +51,7 @@ async function handleGetProjects(req, res) {
 
     // === Role-based access ===
     if (role === "client") {
-      filter.clientId = userId;
+      filter.createdBy = userId;  // updated here
     } else if (role === "student") {
       filter.status = "open"; // Students can only view open projects
     }
@@ -161,8 +116,10 @@ async function handleGetProjects(req, res) {
       filter.deadline = { ...(filter.deadline || {}), $gte: date };
     }
 
-    // === Fetch projects ===
-    const projects = await Project.find(filter).populate("clientId", "orgName");
+    // === Fetch projects sorted by newest first ===
+    const projects = await Project.find(filter)
+      .populate("createdBy", "orgName")  // updated here
+      .sort({ createdAt: -1 }); // newest first
 
     return res
       .status(200)
@@ -174,6 +131,7 @@ async function handleGetProjects(req, res) {
       .json({ error: "Server error while fetching projects" });
   }
 }
+
 
 async function handleGetSpecificProject(req, res) {
   const { id } = req.params;
@@ -203,7 +161,6 @@ async function handleGetSpecificProject(req, res) {
 async function handleUpdateSpecificProject(req, res) {
   const { id } = req.params;
 
-  // === Validate MongoDB ObjectId ===
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ message: "Invalid project ID" });
   }
@@ -214,12 +171,9 @@ async function handleUpdateSpecificProject(req, res) {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    // === Check if the logged-in user is the owner of the project ===
     const { _id: userId } = req.user;
-    const { clientId } = project;
-    const isOwner = clientId.toString() === userId.toString();
-
-    if (!isOwner) {
+    // Change here from clientId to createdBy
+    if (project.createdBy.toString() !== userId.toString()) {
       return res.status(403).json({ message: "Not Authorized" });
     }
 
@@ -227,61 +181,10 @@ async function handleUpdateSpecificProject(req, res) {
       return res.status(400).json({ message: "Request body is missing" });
     }
 
-    const { title, description, budget, deadline, requiredSkills, status } =
-      req.body;
+    const { error, numericBudget, parsedDeadline } = await validateProjectInput(req.body, userId, id);
+    if (error) return res.status(400).json({ message: error });
 
-    // === Basic Field validations ===
-    if (!title || !description || !budget || !deadline || !status) {
-      return res.status(400).json({
-        message: "Title, description, budget, deadline and status are required",
-      });
-    }
-
-    // === Budget validation ===
-    const numericBudget = Number(budget);
-    if (isNaN(numericBudget) || numericBudget <= 0) {
-      return res
-        .status(400)
-        .json({ message: "Budget must be a valid positive number" });
-    }
-
-    // === Date Validation ===
-    const parsedDeadline = new Date(deadline); // Convert string to Date object
-    if (isNaN(parsedDeadline.getTime())) {
-      // Validate it's a real date
-      return res.status(400).json({ message: "Invalid deadline date" });
-    }
-    if (parsedDeadline <= new Date()) {
-      // Ensure it's a future date
-      return res
-        .status(400)
-        .json({ message: "Deadline must be a future date" });
-    }
-
-    // === Required skills validation ===
-    if (!Array.isArray(requiredSkills) || requiredSkills.length === 0) {
-      return res.status(400).json({
-        message: "Required skills must be a non-empty array",
-      });
-    }
-
-    // === Status validation ===
-    const allowedStatus = ["open", "in-progress", "completed", "cancelled"];
-    if (!allowedStatus.includes(status)) {
-      return res.status(400).json({ message: "Invalid status value" });
-    }
-
-    // === Uniqueness check ===
-    const existingProject = await Project.findOne({
-      title,
-      clientId: userId,
-      _id: { $ne: id }, // Exclude current project
-    });
-    if (existingProject) {
-      return res.status(400).json({
-        message: "Project with this title already exists for your account",
-      });
-    }
+    const { title, description, requiredSkills, status } = req.body;
 
     const updatedData = {
       title,
@@ -292,7 +195,6 @@ async function handleUpdateSpecificProject(req, res) {
       status,
     };
 
-    // === Perform update ===
     const updatedProject = await Project.findByIdAndUpdate(id, updatedData, {
       new: true,
     });
@@ -324,8 +226,8 @@ async function handleDeleteSpecificProject(req, res) {
 
     // === Check if the logged-in user is the owner of the project ===
     const { _id: userId } = req.user;
-    const { clientId } = project;
-    const isOwner = clientId.toString() === userId.toString();
+    const { createdBy } = project;
+    const isOwner = createdBy.toString() === userId.toString();
 
     if (!isOwner) {
       return res.status(403).json({ message: "Not Authorized" });

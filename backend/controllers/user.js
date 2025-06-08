@@ -37,7 +37,6 @@ async function handleRegisterUser(req, res) {
       !studentProfile.bio ||
       !studentProfile.profileImageUrl ||
       !studentProfile.portfolioLinks ||
-      !studentProfile.pricing ||
       !studentProfile.availability
     ) {
       return res

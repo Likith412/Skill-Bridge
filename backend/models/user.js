@@ -8,7 +8,6 @@ const StudentProfileSchema = new mongoose.Schema(
     bio: { type: String, required: true },
     profileImageUrl: { type: String, required: true },
     portfolioLinks: { type: [String], required: true },
-    pricing: { type: String, required: true },
     availability: { type: String, required: true },
   },
   { _id: false }
