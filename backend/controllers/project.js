@@ -64,12 +64,14 @@ async function handleCreateProject(req, res) {
     });
     return res.status(201).json(resultProject);
   } catch (error) {
-    console.error("Create project error:", error);
+    console.log("Create project error:", error);
     return res
       .status(500)
       .json({ message: "Server error while creating project." });
   }
 }
+
+// Need some changes in handleGetProjects
 async function handleGetProjects(req, res) {
   try {
     const user = await User.findById(req.user._id);
@@ -121,64 +123,64 @@ async function handleGetProjects(req, res) {
 async function handleGetSpecificProject(req, res) {
   const { id } = req.params;
 
+  // === Validate MongoDB ObjectId ===
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({
-      message: "project not found",
-    });
+    return res.status(400).json({ message: "Project not found" });
   }
 
   try {
     const project = await Project.findById(id).lean();
 
     if (!project) {
-      return res.status(404).json({
-        message: "Project not found",
-      });
+      return res.status(404).json({ message: "Project not found" });
     }
 
-    return res.status(200).json(project);
+    return res
+      .status(200)
+      .json({ message: "Project found", projectDetails: project });
   } catch (error) {
-    console.error("Get project error:", error);
-    return res.status(500).json({
-      message: "Server error while fetching project",
-    });
+    console.log("Get specific project error:", error);
+    return res
+      .status(500)
+      .json({ message: "Server error while fetching specific project" });
   }
 }
 
 async function handleDeleteSpecificProject(req, res) {
   const { id } = req.params;
 
+  // === Validate MongoDB ObjectId ===
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ message: "project not found" });
+    return res.status(400).json({ message: "Project not found" });
   }
 
   try {
     const project = await Project.findById(id);
+
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    const isAdmin = req.user.role === "admin";
     const isOwner = project.clientId.toString() === req.user._id.toString();
 
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ message: "Unauthorized action" });
+    if (!isOwner) {
+      return res.status(403).json({ message: "Not Authorized" });
     }
 
     await Project.findByIdAndDelete(id);
-    return res.status(204).end();
+    return res.status(200).json({ message: "Project deleted successfully" });
   } catch (error) {
-    console.error("Delete error:", error);
+    console.log("Delete error:", error);
     return res.status(500).json({ message: "Server error during deletion" });
   }
 }
 
-// UPDATE Project
 async function handleUpdateSpecificProject(req, res) {
   const { id } = req.params;
 
+  // === Validate MongoDB ObjectId ===
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ message: "project not found" });
+    return res.status(400).json({ message: "Project not found" });
   }
 
   try {
@@ -187,29 +189,25 @@ async function handleUpdateSpecificProject(req, res) {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    const isAdmin = req.user.role === "admin";
     const isOwner = project.clientId.toString() === req.user._id.toString();
 
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ message: "Unauthorized action" });
+    if (!isOwner) {
+      return res.status(403).json({ message: "Not Authorized" });
     }
 
-    const { clientId, ...updateData } = req.body;
+    const { ...newData } = req.body;
 
-    const updatedProject = await Project.findByIdAndUpdate(id, updateData);
+    const updatedProject = await Project.findByIdAndUpdate(id, newData);
 
-    return res.status(200).json(updatedProject);
+    return res
+      .status(200)
+      .json({ message: "Project updated successfully", updatedProject });
   } catch (error) {
-    console.error("Update error:", error);
-
-    if (error.name === "ValidationError") {
-      const errors = Object.values(error.errors).map((err) => err.message);
-      return res.status(400).json({ message: "Validation failed", errors });
-    }
-
+    console.log("Update error:", error);
     return res.status(500).json({ message: "Server error during update" });
   }
 }
+
 module.exports = {
   handleCreateProject,
   handleGetProjects,

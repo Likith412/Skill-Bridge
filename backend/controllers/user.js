@@ -136,7 +136,7 @@ async function handleLoginUser(req, res) {
       jwtToken,
     });
   } catch (error) {
-    console.error("Login error:", error);
+    console.log("Login error:", error);
     res.status(500).json({ message: "Server error during login." });
   }
 }
