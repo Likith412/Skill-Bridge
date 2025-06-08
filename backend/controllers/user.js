@@ -23,7 +23,8 @@ async function handleRegisterUser(req, res) {
       .json({ message: "Username, email, password, and role are required." });
   }
 
-  if (!["student", "client", "admin"].includes(role)) {
+  // Ensure the role is either 'student' or 'client'
+  if (!["student", "client"].includes(role)) {
     return res.status(400).json({ message: "Invalid role provided." });
   }
 
