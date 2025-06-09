@@ -39,9 +39,7 @@ async function handleRegisterUser(req, res) {
       !studentProfile.portfolioLinks ||
       !studentProfile.availability
     ) {
-      return res
-        .status(400)
-        .json({ message: "Missing fields in student profile." });
+      return res.status(400).json({ message: "Missing fields in student profile." });
     }
   }
 
@@ -53,9 +51,7 @@ async function handleRegisterUser(req, res) {
       !clientProfile.orgDescription
       // socialLinks is optional
     ) {
-      return res
-        .status(400)
-        .json({ message: "Missing fields in client profile." });
+      return res.status(400).json({ message: "Missing fields in client profile." });
     }
   }
 
@@ -100,9 +96,7 @@ async function handleLoginUser(req, res) {
 
   // === Basic field validations ===
   if (!email || !password) {
-    return res
-      .status(400)
-      .json({ message: "Email and password are required." });
+    return res.status(400).json({ message: "Email and password are required." });
   }
 
   try {

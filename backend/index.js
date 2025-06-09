@@ -11,7 +11,7 @@ const app = express();
 // DB Connection
 connectToMongoDB(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error", err));
+  .catch(err => console.error("MongoDB connection error", err));
 
 // Middlewares
 app.use(express.json());

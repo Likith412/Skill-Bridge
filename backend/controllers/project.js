@@ -1,15 +1,20 @@
-const Project = require("../models/project");
 const mongoose = require("mongoose");
-const { validateProjectInput } = require("../services/projectValidationService");
+
+const Project = require("../models/project");
+const { validateProjectInput } = require("../validators/projectValidator");
+
 async function handleCreateProject(req, res) {
   if (!req.body) {
     return res.status(400).json({ message: "Request body is missing" });
   }
 
   const { _id: userId } = req.user;
-  const { error, numericBudget, parsedDeadline } = await validateProjectInput(req.body, userId);
+  const { error, numericBudget, parsedDeadline } = await validateProjectInput(
+    req.body,
+    userId
+  );
 
-   if (error) return res.status(400).json({ message: error });
+  if (error) return res.status(400).json({ message: error });
 
   const { title, description, requiredSkills, status } = req.body;
 
@@ -24,7 +29,7 @@ async function handleCreateProject(req, res) {
       createdBy: userId,
     });
 
-  return res.status(201).json({
+    return res.status(201).json({
       message: "Project created successfully",
       projectId: resultProject._id,
     });
@@ -36,14 +41,8 @@ async function handleCreateProject(req, res) {
 
 async function handleGetProjects(req, res) {
   try {
-    const {
-      status,
-      skills,
-      minBudget,
-      maxBudget,
-      beforeDeadline,
-      afterDeadline,
-    } = req.query;
+    const { status, skills, minBudget, maxBudget, beforeDeadline, afterDeadline } =
+      req.query;
 
     const { role, _id: userId } = req.user;
 
@@ -51,7 +50,7 @@ async function handleGetProjects(req, res) {
 
     // === Role-based access ===
     if (role === "client") {
-      filter.createdBy = userId;  // updated here
+      filter.createdBy = userId; // updated here
     } else if (role === "student") {
       filter.status = "open"; // Students can only view open projects
     }
@@ -72,21 +71,17 @@ async function handleGetProjects(req, res) {
           .status(400)
           .json({ message: "Skills must be a comma-separated string" });
       }
-      const skillsArray = skills.split(",").map((skill) => skill.trim());
+      const skillsArray = skills.split(",").map(skill => skill.trim());
       filter.requiredSkills = { $all: skillsArray };
     }
 
     // === Budget validations ===
     if (minBudget && isNaN(Number(minBudget))) {
-      return res
-        .status(400)
-        .json({ message: "minBudget must be a valid number" });
+      return res.status(400).json({ message: "minBudget must be a valid number" });
     }
 
     if (maxBudget && isNaN(Number(maxBudget))) {
-      return res
-        .status(400)
-        .json({ message: "maxBudget must be a valid number" });
+      return res.status(400).json({ message: "maxBudget must be a valid number" });
     }
 
     if (minBudget || maxBudget) {
@@ -99,9 +94,7 @@ async function handleGetProjects(req, res) {
     if (beforeDeadline) {
       const date = new Date(beforeDeadline);
       if (isNaN(date.getTime())) {
-        return res
-          .status(400)
-          .json({ message: "beforeDeadline must be a valid date" });
+        return res.status(400).json({ message: "beforeDeadline must be a valid date" });
       }
       filter.deadline = { ...(filter.deadline || {}), $lte: date };
     }
@@ -109,29 +102,22 @@ async function handleGetProjects(req, res) {
     if (afterDeadline) {
       const date = new Date(afterDeadline);
       if (isNaN(date.getTime())) {
-        return res
-          .status(400)
-          .json({ message: "afterDeadline must be a valid date" });
+        return res.status(400).json({ message: "afterDeadline must be a valid date" });
       }
       filter.deadline = { ...(filter.deadline || {}), $gte: date };
     }
 
     // === Fetch projects sorted by newest first ===
     const projects = await Project.find(filter)
-      .populate("createdBy", "orgName")  // updated here
+      .populate("createdBy", "orgName") // updated here
       .sort({ createdAt: -1 }); // newest first
 
-    return res
-      .status(200)
-      .json({ message: "Projects fetched successfully", projects });
+    return res.status(200).json({ message: "Projects fetched successfully", projects });
   } catch (error) {
     console.log("Error fetching projects:", error);
-    return res
-      .status(500)
-      .json({ error: "Server error while fetching projects" });
+    return res.status(500).json({ error: "Server error while fetching projects" });
   }
 }
-
 
 async function handleGetSpecificProject(req, res) {
   const { id } = req.params;
@@ -181,7 +167,12 @@ async function handleUpdateSpecificProject(req, res) {
       return res.status(400).json({ message: "Request body is missing" });
     }
 
-    const { error, numericBudget, parsedDeadline } = await validateProjectInput(req.body, userId, id);
+    const { error, numericBudget, parsedDeadline } = await validateProjectInput(
+      req.body,
+      userId,
+      id
+    );
+
     if (error) return res.status(400).json({ message: error });
 
     const { title, description, requiredSkills, status } = req.body;

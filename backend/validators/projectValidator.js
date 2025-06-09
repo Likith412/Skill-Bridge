@@ -1,11 +1,14 @@
 const Project = require("../models/project");
 
+// currentProjectId is only provided during update operations
 async function validateProjectInput(data, userId, currentProjectId = null) {
   const { title, description, budget, deadline, requiredSkills, status } = data;
 
   // === Basic field validations ===
   if (!title || !description || !budget || !deadline || !status) {
-    return { error: "Title, description, budget, deadline, and status are required" };
+    return {
+      error: "Title, description, budget, deadline, and status are required",
+    };
   }
 
   // === Budget ===
@@ -36,7 +39,10 @@ async function validateProjectInput(data, userId, currentProjectId = null) {
 
   // === Duplicate check ===
   const query = { title, createdBy: userId };
-  if (currentProjectId) query._id = { $ne: currentProjectId };
+  if (currentProjectId) {
+    // Exclude the current project from duplicate title check during update
+    query._id = { $ne: currentProjectId };
+  }
 
   const existing = await Project.findOne(query);
   if (existing) {
