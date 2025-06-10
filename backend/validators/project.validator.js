@@ -1,4 +1,4 @@
-const Project = require("../models/project");
+const Project = require("../models/project.model");
 
 // currentProjectId is only provided during update operations
 async function validateProjectInput(data, userId, currentProjectId = null) {

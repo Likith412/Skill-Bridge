@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
-const Project = require("../models/project");
-const { validateProjectInput } = require("../validators/projectValidator");
+const Project = require("../models/project.model");
+const { validateProjectInput } = require("../validators/project.validator");
 
 async function handleCreateProject(req, res) {
   if (!req.body) {

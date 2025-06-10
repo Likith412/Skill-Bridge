@@ -1,5 +1,5 @@
 const express = require("express");
-const { authorizeUserRoles } = require("../middlewares/auth");
+const { authorizeUserRoles } = require("../middlewares/auth.middleware");
 
 const {
   handleCreateProject,
@@ -7,7 +7,7 @@ const {
   handleGetSpecificProject,
   handleUpdateSpecificProject,
   handleDeleteSpecificProject,
-} = require("../controllers/project");
+} = require("../controllers/project.controller");
 
 const router = express.Router();
 

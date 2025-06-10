@@ -1,6 +1,9 @@
-const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const fs = require("fs");
+
+const User = require("../models/user.model");
+const cloudinary = require("../configs/cloudinary.config");
 
 async function handleRegisterUser(req, res) {
   if (!req.body) {
@@ -28,6 +31,15 @@ async function handleRegisterUser(req, res) {
     return res.status(400).json({ message: "Invalid role provided." });
   }
 
+  // If a file is uploaded from the frontend, it will be available as req.file
+  if (!req.file) {
+    if (role === "student") {
+      return res.status(400).json({ message: "Profile image is required." });
+    } else {
+      return res.status(400).json({ message: "Organisation Logo is required." });
+    }
+  }
+
   // === Role-based profile validation ===
   if (role === "student") {
     if (
@@ -35,7 +47,6 @@ async function handleRegisterUser(req, res) {
       !studentProfile.fullName ||
       !studentProfile.skills ||
       !studentProfile.bio ||
-      !studentProfile.profileImageUrl ||
       !studentProfile.portfolioLinks ||
       !studentProfile.availability
     ) {
@@ -47,7 +58,6 @@ async function handleRegisterUser(req, res) {
     if (
       !clientProfile ||
       !clientProfile.orgName ||
-      !clientProfile.orgLogoUrl ||
       !clientProfile.orgDescription
       // socialLinks is optional
     ) {
@@ -62,6 +72,22 @@ async function handleRegisterUser(req, res) {
       return res
         .status(400)
         .json({ message: "User already exists with given email or username." });
+    }
+
+    // === Upload image to Cloudinary ===
+    const uploadResult = await cloudinary.uploader.upload(req.file.path);
+
+    // Clean up local file
+    fs.unlink(req.file.path, err => {
+      if (err) console.error("Failed to delete local image:", err);
+    });
+
+    if (role === "student") {
+      studentProfile.profileImageUrl = uploadResult.secure_url;
+    }
+
+    if (role === "client") {
+      clientProfile.orgLogoUrl = uploadResult.secure_url;
     }
 
     // Hash password

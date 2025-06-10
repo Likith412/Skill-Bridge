@@ -2,9 +2,11 @@ const express = require("express");
 require("dotenv").config();
 
 const { connectToMongoDB } = require("./connection");
-const userRouter = require("./routes/user");
-const projectRouter = require("./routes/project");
-const { authenticateUser } = require("./middlewares/auth");
+
+const userRouter = require("./routes/user.route");
+const projectRouter = require("./routes/project.route");
+
+const { authenticateUser } = require("./middlewares/auth.middleware");
 
 const app = express();
 
