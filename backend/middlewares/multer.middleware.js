@@ -10,7 +10,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const fileFilter = (req, file, cb) => {
+const profileFileFilter = (req, file, cb) => {
   const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
@@ -19,13 +19,33 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+const resumeFileFilter = (req, file, cb) => {
+  const allowedType = "application/pdf";
+  if (file.mimetype === allowedType) {
+    cb(null, true); // Accept file
+  } else {
+    cb(null, false); // Reject file
+  }
+}
+
 // Middleware that adds file to req object.
-const upload = multer({
+const profileUpload = multer({
   storage,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB
   },
-  fileFilter,
+  fileFilter:profileFileFilter,
 });
 
-module.exports = { upload };
+
+const resumeUpload = multer({
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+  },
+  fileFilter: resumeFileFilter, 
+});
+
+
+
+module.exports = { profileUpload,resumeUpload };

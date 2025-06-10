@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const reviewSchema = new mongoose.Schema({
-  projectId: {
+  project: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Project",
     required: true,
@@ -13,12 +13,12 @@ const reviewSchema = new mongoose.Schema({
     required: true,
   },
   comment: String,
-  reviewerId: {
+  reviewer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User", // client
     required: true,
   },
-  revieweeId: {
+  reviewee: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User", // student
     required: true,
