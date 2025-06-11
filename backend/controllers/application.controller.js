@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
-const fs = require("fs");
 
 const Application = require("../models/application.model");
 const Project = require("../models/project.model");
+const { streamUpload } = require("../utils/fileUpload");
 const cloudinary = require("../configs/cloudinary.config");
 
 const handleCreateApplication = async (req, res) => {
@@ -42,14 +42,9 @@ const handleCreateApplication = async (req, res) => {
     }
 
     // === Upload to Cloudinary ===
-    const cloudinaryUpload = await cloudinary.uploader.upload(req.file.path, {
+    const cloudinaryUpload = await streamUpload(req.file.buffer, {
       folder: "skillbridge/resumes",
       resource_type: "raw",
-    });
-
-    // Clean up local file
-    fs.unlink(req.file.path, err => {
-      if (err) console.error("Failed to delete local image:", err);
     });
 
     // === Create application ===

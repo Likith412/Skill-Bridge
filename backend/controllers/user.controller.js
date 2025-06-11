@@ -1,13 +1,12 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const fs = require("fs");
 
 const User = require("../models/user.model");
-const cloudinary = require("../configs/cloudinary.config");
+const { streamUpload } = require("../utils/fileUpload");
 
 async function handleRegisterUser(req, res) {
   if (!req.body) {
-    return res.status(400).json({ message: "Request body is missing." });
+    return res.status(400).json({ message: "Request body is missing" });
   }
 
   const {
@@ -23,21 +22,12 @@ async function handleRegisterUser(req, res) {
   if (!username || !email || !password || !role) {
     return res
       .status(400)
-      .json({ message: "Username, email, password, and role are required." });
+      .json({ message: "Username, email, password, and role are required" });
   }
 
   // Ensure the role is either 'student' or 'client'
   if (!["student", "client"].includes(role)) {
-    return res.status(400).json({ message: "Invalid role provided." });
-  }
-
-  // Ensure user image is present (middleware silently drops bad files)
-  if (!req.file) {
-    if (role === "student") {
-      return res.status(400).json({ message: "Profile image is required." });
-    } else {
-      return res.status(400).json({ message: "Organisation Logo is required." });
-    }
+    return res.status(400).json({ message: "Invalid role provided" });
   }
 
   // === Role-based profile validation ===
@@ -50,7 +40,7 @@ async function handleRegisterUser(req, res) {
       !studentProfile.portfolioLinks ||
       !studentProfile.availability
     ) {
-      return res.status(400).json({ message: "Missing fields in student profile." });
+      return res.status(400).json({ message: "Missing fields in student profile" });
     }
   }
 
@@ -61,7 +51,16 @@ async function handleRegisterUser(req, res) {
       !clientProfile.orgDescription
       // socialLinks is optional
     ) {
-      return res.status(400).json({ message: "Missing fields in client profile." });
+      return res.status(400).json({ message: "Missing fields in client profile" });
+    }
+  }
+
+  // Ensure user image is present (middleware silently drops bad files)
+  if (!req.file) {
+    if (role === "student") {
+      return res.status(400).json({ message: "Profile image is required" });
+    } else {
+      return res.status(400).json({ message: "Organisation Logo is required" });
     }
   }
 
@@ -71,17 +70,12 @@ async function handleRegisterUser(req, res) {
     if (existingUser) {
       return res
         .status(400)
-        .json({ message: "User already exists with given email or username." });
+        .json({ message: "User already exists with given email or username" });
     }
 
     // === Upload image to Cloudinary ===
-    const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+    const uploadResult = await streamUpload(req.file.buffer, {
       folder: "skillbridge/userImages",
-    });
-
-    // Clean up local file
-    fs.unlink(req.file.path, err => {
-      if (err) console.error("Failed to delete local image:", err);
     });
 
     if (role === "student") {
@@ -106,38 +100,38 @@ async function handleRegisterUser(req, res) {
     });
 
     res.status(201).json({
-      message: "User registered successfully!",
+      message: "User registered successfully",
       id: resultUser._id,
     });
   } catch (err) {
     console.log("Registration error:", err);
-    res.status(500).json({ message: "Server error during registration." });
+    res.status(500).json({ message: "Server error during registration" });
   }
 }
 
 async function handleLoginUser(req, res) {
   if (!req.body) {
-    return res.status(400).json({ message: "Request body is missing." });
+    return res.status(400).json({ message: "Request body is missing" });
   }
 
   const { email, password } = req.body;
 
   // === Basic field validations ===
   if (!email || !password) {
-    return res.status(400).json({ message: "Email and password are required." });
+    return res.status(400).json({ message: "Email and password are required" });
   }
 
   try {
     const dbUser = await User.findOne({ email });
 
     if (!dbUser) {
-      return res.status(400).json({ message: "Invalid user credentials." });
+      return res.status(400).json({ message: "Invalid user credentials" });
     }
 
     const isPasswordMatched = await bcrypt.compare(password, dbUser.password);
 
     if (!isPasswordMatched) {
-      return res.status(400).json({ message: "Incorrect password." });
+      return res.status(400).json({ message: "Incorrect password" });
     }
 
     // === Prepare payload for JWT ===
@@ -160,7 +154,7 @@ async function handleLoginUser(req, res) {
     });
   } catch (error) {
     console.log("Login error:", error);
-    res.status(500).json({ message: "Server error during login." });
+    res.status(500).json({ message: "Server error during login" });
   }
 }
 

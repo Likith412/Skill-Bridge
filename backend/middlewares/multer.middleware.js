@@ -1,14 +1,8 @@
 const multer = require("multer");
+const path = require("path");
 
 // File Storage Configurations
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "../uploads"); // Save to ../uploads
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
-});
+const storage = multer.memoryStorage();
 
 const profileFileFilter = (req, file, cb) => {
   const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
