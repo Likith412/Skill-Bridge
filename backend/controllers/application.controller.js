@@ -4,6 +4,8 @@ const Application = require("../models/application.model");
 const Project = require("../models/project.model");
 const { streamUpload } = require("../utils/fileUpload");
 const cloudinary = require("../configs/cloudinary.config");
+const User = require("../models/user.model");
+
 
 const handleCreateApplication = async (req, res) => {
   const { projectId } = req.body;
@@ -170,8 +172,98 @@ const handleUpdateApplicationStatus = async (req, res) => {
   }
 };
 
+const handleGetMyApplications = async (req, res) => {
+  const studentId = req.user._id;
+
+  try {
+    // Ensure the user exists and is a student
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    if (student.role !== "student") {
+      return res.status(403).json({ message: "Only students can access their applications" });
+    }
+
+    const applications = await Application.find({ studentId })
+      .populate({
+        path: "projectId",
+        select: "title description status",
+      })
+      .sort({ createdAt: -1 });
+
+    if (!applications || applications.length === 0) {
+      return res.status(404).json({ message: "No applications found for this student" });
+    }
+
+    return res.status(200).json({ applications });
+  } catch (err) {
+    console.error("Get my applications error:", err);
+    return res.status(500).json({ message: "Server error fetching applications" });
+  }
+};
+
+
+
+
+const handleGetApplicationsByProject = async (req, res) => {
+  const { projectId } = req.params;
+  const currentUserId = req.user._id;
+
+  if (!mongoose.Types.ObjectId.isValid(projectId)) {
+    return res.status(400).json({ message: "Invalid project ID" });
+  }
+
+  try {
+    // Check if user exists and get role
+    const user = await User.findById(currentUserId);
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // Authorization: either project owner or admin
+    const isOwner = project.createdBy.toString() === currentUserId.toString();
+    const isAdmin = user.role === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        message: "Not authorized to view applications for this project",
+      });
+    }
+
+    const applications = await Application.find({ projectId })
+      .populate({
+        path: "studentId",
+        select: "name email phone college",
+      })
+      .sort({ createdAt: -1 });
+
+    if (!applications || applications.length === 0) {
+      return res.status(404).json({
+        message: "No applications submitted for this project",
+      });
+    }
+
+    return res.status(200).json({ projectTitle: project.title, applications });
+  } catch (err) {
+    console.error("Get applications by project error:", err);
+    return res.status(500).json({ message: "Server error fetching applications" });
+  }
+};
+
+
+
+
 module.exports = {
   handleCreateApplication,
   handleDeleteApplication,
   handleUpdateApplicationStatus,
+  handleGetMyApplications,
+  handleGetApplicationsByProject
 };

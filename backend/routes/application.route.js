@@ -6,6 +6,8 @@ const {
   handleCreateApplication,
   handleDeleteApplication,
   handleUpdateApplicationStatus,
+  handleGetApplicationsByProject,
+  handleGetMyApplications
 } = require("../controllers/application.controller");
 
 const { resumeUpload } = require("../middlewares/multer.middleware");
@@ -25,5 +27,19 @@ router.delete("/:id", authorizeUserRoles("student"), handleDeleteApplication);
 
 // only client can change the application status
 router.patch("/:id/status", authorizeUserRoles("client"), handleUpdateApplicationStatus);
+
+router.get(
+  "/me",
+ 
+  authorizeUserRoles("student"),
+  handleGetMyApplications
+);
+
+router.get(
+  "/project/:projectId",
+
+  authorizeUserRoles("client", "admin"),
+  handleGetApplicationsByProject
+);
 
 module.exports = router;
