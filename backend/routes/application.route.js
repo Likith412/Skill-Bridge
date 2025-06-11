@@ -8,7 +8,7 @@ const {
   handleUpdateApplicationStatus,
 } = require("../controllers/application.controller");
 
-const resumeUpload = require("../middleware/resumeUpload");
+const { resumeUpload } = require("../middlewares/multer.middleware");
 
 const router = express.Router();
 

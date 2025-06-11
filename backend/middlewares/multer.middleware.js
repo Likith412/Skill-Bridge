@@ -26,7 +26,7 @@ const resumeFileFilter = (req, file, cb) => {
   } else {
     cb(null, false); // Reject file
   }
-}
+};
 
 // Middleware that adds file to req object.
 const profileUpload = multer({
@@ -34,18 +34,15 @@ const profileUpload = multer({
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB
   },
-  fileFilter:profileFileFilter,
+  fileFilter: profileFileFilter,
 });
-
 
 const resumeUpload = multer({
   storage,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB
   },
-  fileFilter: resumeFileFilter, 
+  fileFilter: resumeFileFilter,
 });
 
-
-
-module.exports = { profileUpload,resumeUpload };
+module.exports = { profileUpload, resumeUpload };
