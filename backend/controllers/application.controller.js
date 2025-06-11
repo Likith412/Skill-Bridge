@@ -1,143 +1,182 @@
 const mongoose = require("mongoose");
+const fs = require("fs");
+
 const Application = require("../models/application.model");
 const Project = require("../models/project.model");
 const cloudinary = require("../configs/cloudinary.config");
-const fs = require("fs");
 
-const createApplication = async (req, res) => {
+const handleCreateApplication = async (req, res) => {
+  const { projectId } = req.body;
+  const { _id: studentId } = req.user;
+
+  // === Validate MongoDB ObjectId ===
+  if (!mongoose.Types.ObjectId.isValid(projectId)) {
+    return res.status(400).json({ message: "Invalid project ID format" });
+  }
+
   try {
-    const { projectId } = req.body;
-    const studentId = req.user._id;
-
-    // 1. Validate projectId format
-    if (!mongoose.Types.ObjectId.isValid(projectId)) {
-      return res.status(400).json({ message: "Invalid project ID format" });
-    }
-
-    // 2. Ensure project exists
+    // === Ensure project exists ===
     const project = await Project.findById(projectId);
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    // 3. Ensure resume file is present (middleware silently drops bad files)
+    // === Check if already applied ===
+    const existing = await Application.findOne({ projectId, studentId });
+    if (existing) {
+      let invalidMsg = "";
+      if (existing.status === "approved") {
+        invalidMsg = "Your application for this project has already been approved";
+      } else if (existing.status === "rejected") {
+        invalidMsg = "Your application for this project was rejected";
+      } else {
+        invalidMsg =
+          "You have already applied for this project and your application is pending";
+      }
+      return res.status(400).json({ message: invalidMsg });
+    }
+
+    // Ensure resume file is present (middleware silently drops bad files)
     if (!req.file) {
       return res.status(400).json({ message: "Resume must be a PDF and under 5MB" });
     }
 
-    // 4. Check if already applied
-    const existing = await Application.findOne({ projectId, studentId });
-    if (existing) {
-      if (existing.status === "approved") {
-        return res.status(400).json({ message: "You are already approved for this project." });
-      }
-      return res.status(400).json({ message: "You have already applied to this project." });
-    }
-
-    // 5. Upload to Cloudinary
+    // === Upload to Cloudinary ===
     const cloudinaryUpload = await cloudinary.uploader.upload(req.file.path, {
-      folder: "resumes",
+      folder: "skillbridge/resumes",
       resource_type: "raw",
     });
 
-    // 6. Check if upload succeeded
-    if (!cloudinaryUpload || !cloudinaryUpload.secure_url) {
-      fs.unlinkSync(req.file.path); // Clean up local file
-      return res.status(500).json({ message: "Resume upload failed" });
-    }
+    // Clean up local file
+    fs.unlink(req.file.path, err => {
+      if (err) console.error("Failed to delete local image:", err);
+    });
 
-    fs.unlinkSync(req.file.path); // Clean up local file after successful upload
-
-    // 7. Create application
-    const application = await Application.create({
+    // === Create application ===
+    const resultApplication = await Application.create({
       projectId,
       studentId,
       resume: cloudinaryUpload.secure_url,
       status: "pending",
     });
 
-    return res.status(201).json(application);
+    return res.status(201).json({
+      message: "Application created successfully",
+      applicationId: resultApplication._id,
+    });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Server error" });
+    console.log("Create application error: ", err);
+    return res.status(500).json({ message: "Server error while creating application" });
   }
 };
 
+const handleDeleteApplication = async (req, res) => {
+  const { id: applicationId } = req.params;
 
+  // === Validate MongoDB ObjectId ===
+  if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+    return res.status(404).json({ message: "Application not found" });
+  }
 
-// 2. Delete Application (Student)
-const deleteApplication = async (req, res) => {
   try {
-    const applicationId = req.params.id;
-
-    // 1. Validate application ID format
-    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
-      return res.status(400).json({ message: "Invalid application ID format" });
-    }
-
-    // 2. Check if application exists
+    // === Ensure application exists ===
     const application = await Application.findById(applicationId);
     if (!application) {
       return res.status(404).json({ message: "Application not found" });
     }
 
-    // 3. Check if user is the owner (student)
-    if (application.studentId.toString() !== req.user._id) {
-      return res.status(403).json({ message: "Not authorized to delete this application" });
+    // === Check if user is the owner (student) ===
+    const { _id: currentUserId } = req.user;
+    if (application.studentId.toString() !== currentUserId.toString()) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to delete this application" });
     }
 
-    // 4. Delete application
-    await application.deleteOne();
+    // === Delete application ===
 
-    res.json({ message: "Application deleted successfully" });
+    // Extract public_id from Cloudinary URL
+    const cloudinaryUrl = application.resume;
+    console.log(cloudinaryUrl);
+    const parts = cloudinaryUrl.split("/");
+    const filename = parts[parts.length - 1];
+    const publicId = `skillbridge/resumes/${filename.split(".")[0]}`;
+
+    // Delete file from cloudinary
+    await cloudinary.uploader.destroy(publicId);
+
+    // Delete application from DB
+    await Application.findByIdAndDelete(applicationId);
+
+    res.status(200).json({ message: "Application deleted successfully" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.log("Delete application error: ", err);
+    res.status(500).json({ message: "Server error during deletion" });
   }
 };
 
-//3 accept application
+const handleUpdateApplicationStatus = async (req, res) => {
+  const { id: applicationId } = req.params;
+  const { status } = req.body;
 
-const acceptApplication = async (req, res) => {
+  // === Validate MongoDB ObjectId ===
+  if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+    return res.status(404).json({ message: "Application not found" });
+  }
+
+  // === Validate status ===
+  const allowedStatuses = ["approved", "pending", "rejected"];
+  if (!allowedStatuses.includes(status)) {
+    return res.status(400).json({ message: "Invalid application status" });
+  }
+
   try {
-    const applicationId = req.params.id;
-
-    // 1. Validate application ID format
-    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
-      return res.status(400).json({ message: "Invalid application ID format" });
-    }
-
-    // 2. Check if application exists
+    // === Ensure application exists ===
     const application = await Application.findById(applicationId).populate("projectId");
     if (!application) {
       return res.status(404).json({ message: "Application not found" });
     }
 
-    // 3. Ensure project exists and has `createdBy` field
-    if (!application.projectId || !application.projectId.createdBy) {
-      return res.status(500).json({ message: "Project data is incomplete" });
+    // === Ensure only the project owner (client) can update ===
+    const projectOwnerId = application.projectId.createdBy;
+    const { _id: currentUserId } = req.user;
+    if (projectOwnerId.toString() !== currentUserId.toString()) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to update this application" });
     }
 
-    // 4. Check if current user is the project owner (client)
-    const projectOwnerId = application.projectId.createdBy.toString();
-    if (projectOwnerId !== req.user._id) {
-      return res.status(403).json({ message: "Not authorized to accept this application" });
+    // Allow status update only if project is 'open'
+    if (application.projectId.status !== "open") {
+      return res
+        .status(400)
+        .json({ message: "Cannot change application status. Project is not open" });
     }
 
-    // 5. Prevent re-approving already approved
-    if (application.status === "approved") {
-      return res.status(400).json({ message: "Application is already approved" });
+    // Avoid re-updating with the same status
+    if (application.status === status) {
+      return res.status(400).json({ message: `Application is already ${status}` });
     }
 
-    // 6. Approve the application
-    application.status = "approved";
-    await application.save();
+    // === Update application status ===
+    const updatedApplication = await Application.findByIdAndUpdate(
+      applicationId,
+      { status },
+      { new: true }
+    );
 
-    res.json({ message: "Application approved successfully", application });
+    res.json({
+      message: `Application ${status} successfully`,
+      application: updatedApplication,
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Update application status error:", err);
+    res.status(500).json({ message: "Server error while updating application status" });
   }
 };
 
-module.exports = {createApplication,deleteApplication,acceptApplication}
+module.exports = {
+  handleCreateApplication,
+  handleDeleteApplication,
+  handleUpdateApplicationStatus,
+};

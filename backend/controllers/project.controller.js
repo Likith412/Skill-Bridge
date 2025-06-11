@@ -124,7 +124,7 @@ async function handleGetSpecificProject(req, res) {
 
   // === Validate MongoDB ObjectId ===
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ message: "Project not found" });
+    return res.status(404).json({ message: "Project not found" });
   }
 
   try {
@@ -148,7 +148,7 @@ async function handleUpdateSpecificProject(req, res) {
   const { id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ message: "Invalid project ID" });
+    return res.status(404).json({ message: "Project not found" });
   }
 
   try {
@@ -205,7 +205,7 @@ async function handleDeleteSpecificProject(req, res) {
 
   // === Validate MongoDB ObjectId ===
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ message: "Project not found" });
+    return res.status(404).json({ message: "Project not found" });
   }
 
   try {

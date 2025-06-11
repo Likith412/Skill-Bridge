@@ -31,7 +31,7 @@ async function handleRegisterUser(req, res) {
     return res.status(400).json({ message: "Invalid role provided." });
   }
 
-  // If a file is uploaded from the frontend, it will be available as req.file
+  // Ensure user image is present (middleware silently drops bad files)
   if (!req.file) {
     if (role === "student") {
       return res.status(400).json({ message: "Profile image is required." });
@@ -75,7 +75,9 @@ async function handleRegisterUser(req, res) {
     }
 
     // === Upload image to Cloudinary ===
-    const uploadResult = await cloudinary.uploader.upload(req.file.path);
+    const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+      folder: "skillbridge/userImages",
+    });
 
     // Clean up local file
     fs.unlink(req.file.path, err => {

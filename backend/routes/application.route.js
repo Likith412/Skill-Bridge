@@ -1,31 +1,29 @@
 const express = require("express");
-const router = express.Router();
-const { authenticateUser, authorizeUserRoles } = require("../middleware/authMiddleware");
+
+const { authorizeUserRoles } = require("../middlewares/auth.middleware");
+
+const {
+  handleCreateApplication,
+  handleDeleteApplication,
+  handleUpdateApplicationStatus,
+} = require("../controllers/application.controller");
+
 const resumeUpload = require("../middleware/resumeUpload");
-const {acceptApplication,deleteApplication,createApplication} = require("../controllers/application.controller")
-// Student: Create Application
+
+const router = express.Router();
+
+// only student can create
 router.post(
   "/",
-  authenticateUser,
   authorizeUserRoles("student"),
   resumeUpload.single("resume"),
-  createApplication
+  handleCreateApplication
 );
 
-// Student: Delete Application
-router.delete(
-  "/:id",
-  authenticateUser,
-  authorizeUserRoles("student"),
-  deleteApplication
-);
+// only student can delete
+router.delete("/:id", authorizeUserRoles("student"), handleDeleteApplication);
 
-// Client: Accept Application
-router.patch(
-  "/:id/accept",
-  authenticateUser,
-  authorizeUserRoles("client"),
-  acceptApplication
-);
+// only client can change the application status
+router.patch("/:id/status", authorizeUserRoles("client"), handleUpdateApplicationStatus);
 
 module.exports = router;
