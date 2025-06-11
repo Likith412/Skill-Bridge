@@ -3,68 +3,69 @@ const jwt = require("jsonwebtoken");
 
 const User = require("../models/user.model");
 const { streamUpload } = require("../utils/fileUpload");
+const { parseJson } = require("../utils/parseJson");
 
 async function handleRegisterUser(req, res) {
-  if (!req.body) {
-    return res.status(400).json({ message: "Request body is missing" });
-  }
-
-  const {
-    username,
-    email,
-    password,
-    role,
-    studentProfile = null,
-    clientProfile = null,
-  } = req.body;
-
-  // === Basic field validations ===
-  if (!username || !email || !password || !role) {
-    return res
-      .status(400)
-      .json({ message: "Username, email, password, and role are required" });
-  }
-
-  // Ensure the role is either 'student' or 'client'
-  if (!["student", "client"].includes(role)) {
-    return res.status(400).json({ message: "Invalid role provided" });
-  }
-
-  // === Role-based profile validation ===
-  if (role === "student") {
-    if (
-      !studentProfile ||
-      !studentProfile.fullName ||
-      !studentProfile.skills ||
-      !studentProfile.bio ||
-      !studentProfile.portfolioLinks ||
-      !studentProfile.availability
-    ) {
-      return res.status(400).json({ message: "Missing fields in student profile" });
-    }
-  }
-
-  if (role === "client") {
-    if (
-      !clientProfile ||
-      !clientProfile.orgName ||
-      !clientProfile.orgDescription
-      // socialLinks is optional
-    ) {
-      return res.status(400).json({ message: "Missing fields in client profile" });
-    }
-  }
-
-  // Ensure user image is present (middleware silently drops bad files)
-  if (!req.file) {
-    if (role === "student") {
-      return res.status(400).json({ message: "Profile image is required" });
-    } else {
-      return res.status(400).json({ message: "Organisation Logo is required" });
-    }
-  }
-
   try {
+    if (!req.body) {
+      return res.status(400).json({ message: "Request body is missing" });
+    }
+
+    const { username, email, password, role, studentProfile, clientProfile } = req.body;
+
+    let parsedStudentProfile = parseJson(studentProfile);
+    let parsedClientProfile = parseJson(clientProfile);
+
+    // === Basic field validations ===
+    if (!username || !email || !password || !role) {
+      return res
+        .status(400)
+        .json({ message: "Username, email, password, and role are required" });
+    }
+
+    // Ensure the role is either 'student' or 'client'
+    if (!["student", "client"].includes(role)) {
+      return res.status(400).json({ message: "Invalid role provided" });
+    }
+
+    // === Role-based profile validation ===
+    if (role === "student") {
+      if (
+        !parsedStudentProfile ||
+        !parsedStudentProfile.fullName ||
+        !parsedStudentProfile.skills ||
+        !parsedStudentProfile.bio ||
+        !parsedStudentProfile.portfolioLinks ||
+        !parsedStudentProfile.availability
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Missing or invalid fields in student profile" });
+      }
+    }
+
+    if (role === "client") {
+      if (
+        !parsedClientProfile ||
+        !parsedClientProfile.orgName ||
+        !parsedClientProfile.orgDescription
+        // socialLinks is optional
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Missing or invalid fields in client profile" });
+      }
+    }
+
+    // Ensure user image is present (middleware silently drops bad files)
+    if (!req.file) {
+      if (role === "student") {
+        return res.status(400).json({ message: "Profile image is required" });
+      } else {
+        return res.status(400).json({ message: "Organisation Logo is required" });
+      }
+    }
+
     // === Uniqueness check ===
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
@@ -79,11 +80,11 @@ async function handleRegisterUser(req, res) {
     });
 
     if (role === "student") {
-      studentProfile.profileImageUrl = uploadResult.secure_url;
+      parsedStudentProfile.profileImageUrl = uploadResult.secure_url;
     }
 
     if (role === "client") {
-      clientProfile.orgLogoUrl = uploadResult.secure_url;
+      parsedClientProfile.orgLogoUrl = uploadResult.secure_url;
     }
 
     // Hash password
@@ -95,8 +96,8 @@ async function handleRegisterUser(req, res) {
       email,
       password: hashedPassword,
       role,
-      ...(role === "student" && { studentProfile }),
-      ...(role === "client" && { clientProfile }),
+      ...(role === "student" && { studentProfile: parsedStudentProfile }),
+      ...(role === "client" && { clientProfile: parsedClientProfile }),
     });
 
     res.status(201).json({
