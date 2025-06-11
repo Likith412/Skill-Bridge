@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const Project = require("../models/project.model");
+
 const { validateProjectInput } = require("../validators/project.validator");
 
 async function handleCreateProject(req, res) {
@@ -9,6 +10,7 @@ async function handleCreateProject(req, res) {
   }
 
   const { _id: userId } = req.user;
+  // === Validations ===
   const { error, numericBudget, parsedDeadline } = await validateProjectInput(
     req.body,
     userId
@@ -19,6 +21,7 @@ async function handleCreateProject(req, res) {
   const { title, description, requiredSkills, status } = req.body;
 
   try {
+    // === Project creation ===
     const resultProject = await Project.create({
       title,
       description,
@@ -52,11 +55,15 @@ async function handleGetProjects(req, res) {
     if (role === "client") {
       filter.createdBy = userId; // updated here
     } else if (role === "student") {
+      if (status && status !== "open") {
+        return res.status(403).json({ message: "Students can only view open projects" });
+      }
       filter.status = "open"; // Students can only view open projects
     }
 
     // === Validate status for non-student roles ===
     if (role !== "student" && status) {
+      console.log(status);
       const allowedStatus = ["open", "in-progress", "completed", "cancelled"];
       if (!allowedStatus.includes(status)) {
         return res.status(400).json({ message: "Invalid status filter" });
@@ -109,7 +116,10 @@ async function handleGetProjects(req, res) {
 
     // === Fetch projects sorted by newest first ===
     const projects = await Project.find(filter)
-      .populate("createdBy", "orgName") // updated here
+      .populate({
+        path: "createdBy",
+        select: "clientProfile.orgName clientProfile.orgLogoUrl",
+      })
       .sort({ createdAt: -1 }); // newest first
 
     return res.status(200).json({ message: "Projects fetched successfully", projects });
@@ -129,10 +139,15 @@ async function handleGetSpecificProject(req, res) {
 
   try {
     // === Fetch project ===
-    const project = await Project.findById(id).lean();
-
+    const project = await Project.findById(id);
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
+    }
+
+    // Only admin, students, or the client who created the project can view
+    const { _id: currentUserId, role } = req.user;
+    if (role === "client" && project.createdBy.toString() !== currentUserId.toString()) {
+      return res.status(403).json({ message: "Not Authorized" });
     }
 
     return res.status(200).json({ message: "Project found", project });
@@ -157,9 +172,12 @@ async function handleUpdateSpecificProject(req, res) {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    const { _id: userId } = req.user;
-    // Change here from clientId to createdBy
-    if (project.createdBy.toString() !== userId.toString()) {
+    // === Check if the logged-in user is the owner of the project ===
+    const { _id: currentUserId } = req.user;
+    const { createdBy } = project;
+    const isOwner = createdBy.toString() === currentUserId.toString();
+
+    if (!isOwner) {
       return res.status(403).json({ message: "Not Authorized" });
     }
 
@@ -167,9 +185,10 @@ async function handleUpdateSpecificProject(req, res) {
       return res.status(400).json({ message: "Request body is missing" });
     }
 
+    // === validations ===
     const { error, numericBudget, parsedDeadline } = await validateProjectInput(
       req.body,
-      userId,
+      currentUserId,
       id
     );
 
@@ -216,9 +235,9 @@ async function handleDeleteSpecificProject(req, res) {
     }
 
     // === Check if the logged-in user is the owner of the project ===
-    const { _id: userId } = req.user;
+    const { _id: currentUserId } = req.user;
     const { createdBy } = project;
-    const isOwner = createdBy.toString() === userId.toString();
+    const isOwner = createdBy.toString() === currentUserId.toString();
 
     if (!isOwner) {
       return res.status(403).json({ message: "Not Authorized" });

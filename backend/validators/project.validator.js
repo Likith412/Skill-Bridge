@@ -45,6 +45,7 @@ async function validateProjectInput(data, userId, currentProjectId = null) {
   }
 
   const existing = await Project.findOne(query);
+
   if (existing) {
     return { error: "Project with this title already exists for your account" };
   }
