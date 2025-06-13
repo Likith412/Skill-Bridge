@@ -63,7 +63,6 @@ async function handleGetProjects(req, res) {
 
     // === Validate status for non-student roles ===
     if (role !== "student" && status) {
-      console.log(status);
       const allowedStatus = ["open", "in-progress", "completed", "cancelled"];
       if (!allowedStatus.includes(status)) {
         return res.status(400).json({ message: "Invalid status filter" });
@@ -139,7 +138,11 @@ async function handleGetSpecificProject(req, res) {
 
   try {
     // === Fetch project ===
-    const project = await Project.findById(id);
+    const project = await Project.findById(id).populate({
+      path: "createdBy",
+      select: "clientProfile.orgName clientProfile.orgLogoUrl",
+    });
+
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
     }
