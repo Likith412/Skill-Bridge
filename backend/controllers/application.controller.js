@@ -4,7 +4,6 @@ const Application = require("../models/application.model");
 const Project = require("../models/project.model");
 const { streamUpload } = require("../utils/fileUpload");
 const cloudinary = require("../configs/cloudinary.config");
-const User = require("../models/user.model");
 
 const handleCreateApplication = async (req, res) => {
   const { projectId } = req.body;
@@ -170,7 +169,8 @@ const handleGetApplicationsByStudent = async (req, res) => {
   const { _id: studentId } = req.user;
 
   try {
-    const applications = await Application.find({ studentId })
+    // === Fetch applications ===
+    const applications = await Application.find({ studentId }, { studentId: 0 })
       .populate({
         path: "projectId",
         select: "title description status",
@@ -190,17 +190,19 @@ const handleGetApplicationsByProject = async (req, res) => {
   const { projectId } = req.params;
   const { _id: currentUserId } = req.user;
 
+  // === Validate MongoDB ObjectId ===
   if (!mongoose.Types.ObjectId.isValid(projectId)) {
     return res.status(404).json({ message: "Project not found" });
   }
 
   try {
+    // === Ensure project exists ===
     const project = await Project.findById(projectId);
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    // Authorization: either project owner or admin
+    // === Ensure only the project owner (client) can view ===
     const isOwner = project.createdBy.toString() === currentUserId.toString();
 
     if (!isOwner) {
@@ -209,16 +211,17 @@ const handleGetApplicationsByProject = async (req, res) => {
       });
     }
 
-    const applications = await Application.find({ projectId })
+    // === Fetch applications ===
+    const applications = await Application.find({ projectId }, { projectId: 0 })
       .populate({
         path: "studentId",
-        select: "-password",
+        select: "username email bio",
       })
       .sort({ createdAt: -1 });
 
     return res
       .status(200)
-      .json({ message: "Applications fetched successfully", applications });
+      .json({ message: "Applications fetched successfully", project, applications });
   } catch (err) {
     console.log("Get applications by project error:", err);
     return res.status(500).json({ message: "Server error fetching applications" });
