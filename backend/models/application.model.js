@@ -20,7 +20,7 @@ const applicationSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: ["pending", "approved", "rejected"],
-      default: pending,
+      default: "pending",
     },
   },
   { timestamps: true }

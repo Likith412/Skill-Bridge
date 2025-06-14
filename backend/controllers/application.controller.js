@@ -234,10 +234,49 @@ const handleGetApplicationsByProject = async (req, res) => {
   }
 };
 
+const handleGetSingleApplication = async (req, res) => {
+  const { applicationId } = req.params;
+  const { _id: currentUserId } = req.user;
+
+  // Validate MongoDB ObjectId
+  if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+    return res.status(404).json({ message: "Application not found" });
+  }
+
+  try {
+    // Fetch the application and populate student and project details
+    const application = await Application.findById(applicationId)
+      .populate({
+        path: "student",
+        select: "-password", // hide password
+      })
+      .populate({
+        path: "project",
+        select: "title createdBy", // minimal fields for authorization
+      });
+
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+  
+
+    return res.status(200).json({
+      message: "Application fetched successfully",
+      application,
+    });
+  } catch (err) {
+    console.log("Get single application error:", err);
+    return res.status(500).json({ message: "Server error fetching application" });
+  }
+};
+
+
 module.exports = {
   handleCreateApplication,
   handleDeleteApplication,
   handleUpdateApplicationStatus,
   handleGetApplicationsByStudent,
   handleGetApplicationsByProject,
+  handleGetSingleApplication
 };
