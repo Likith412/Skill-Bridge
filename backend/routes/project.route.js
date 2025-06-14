@@ -9,6 +9,8 @@ const {
   handleDeleteSpecificProject,
 } = require("../controllers/project.controller");
 
+const { handleCreateReview } = require("../controllers/review.controller");
+
 const router = express.Router();
 
 router
@@ -26,5 +28,7 @@ router.put(
   authorizeUserRoles("client", "admin"),
   handleUpdateSpecificProject
 ); // only client can update
+
+router.post("/:id/reviews", authorizeUserRoles("client"), handleCreateReview);
 
 module.exports = router;

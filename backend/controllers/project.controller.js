@@ -165,6 +165,7 @@ async function handleGetSpecificProject(req, res) {
 async function handleUpdateSpecificProject(req, res) {
   const { id } = req.params;
 
+  // === Validate MongoDB ObjectId ===
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(404).json({ message: "Project not found" });
   }

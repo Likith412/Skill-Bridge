@@ -2,12 +2,12 @@ const mongoose = require("mongoose");
 
 const applicationSchema = new mongoose.Schema(
   {
-    projectId: {
+    project: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Project",
       required: true,
     },
-    studentId: {
+    student: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -20,6 +20,7 @@ const applicationSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: ["pending", "approved", "rejected"],
+      default: pending,
     },
   },
   { timestamps: true }

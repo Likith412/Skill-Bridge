@@ -22,7 +22,11 @@ const handleCreateApplication = async (req, res) => {
     }
 
     // === Check if already applied ===
-    const existing = await Application.findOne({ projectId, studentId });
+    const existing = await Application.findOne({
+      project: projectId,
+      student: studentId,
+    });
+
     if (existing) {
       let invalidMsg = "";
       if (existing.status === "approved") {
@@ -42,15 +46,15 @@ const handleCreateApplication = async (req, res) => {
     }
 
     // === Upload to Cloudinary ===
-    const cloudinaryUpload = await streamUpload(req.file.buffer, {
+    const cloudinaryUpload = await streamUpload(req.file?.buffer, {
       folder: "skillbridge/resumes",
       resource_type: "raw",
     });
 
     // === Create application ===
     const resultApplication = await Application.create({
-      projectId,
-      studentId,
+      project: projectId,
+      student: studentId,
       resume: cloudinaryUpload.secure_url,
       status: "pending",
     });
@@ -82,7 +86,7 @@ const handleDeleteApplication = async (req, res) => {
 
     // === Check if user is the owner (student) ===
     const { _id: currentUserId } = req.user;
-    if (application.studentId.toString() !== currentUserId.toString()) {
+    if (application.student.toString() !== currentUserId.toString()) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
@@ -124,20 +128,20 @@ const handleUpdateApplicationStatus = async (req, res) => {
 
   try {
     // === Ensure application exists ===
-    const application = await Application.findById(applicationId).populate("projectId");
+    const application = await Application.findById(applicationId).populate("project");
     if (!application) {
       return res.status(404).json({ message: "Application not found" });
     }
 
     // === Ensure only the project owner (client) can update ===
-    const projectOwnerId = application.projectId.createdBy;
+    const projectOwnerId = application.project.createdBy;
     const { _id: currentUserId } = req.user;
     if (projectOwnerId.toString() !== currentUserId.toString()) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
     // Allow status update only if project is 'open'
-    if (application.projectId.status !== "open") {
+    if (application.project.status !== "open") {
       return res
         .status(400)
         .json({ message: "Cannot change application status. Project is not open" });
@@ -170,9 +174,9 @@ const handleGetApplicationsByStudent = async (req, res) => {
 
   try {
     // === Fetch applications ===
-    const applications = await Application.find({ studentId }, { studentId: 0 })
+    const applications = await Application.find({ student: studentId })
       .populate({
-        path: "projectId",
+        path: "project",
         select: "title description status",
       })
       .sort({ createdAt: -1 });
@@ -197,13 +201,13 @@ const handleGetApplicationsByProject = async (req, res) => {
 
   try {
     // === Ensure project exists ===
-    const project = await Project.findById(projectId);
-    if (!project) {
+    const projectDoc = await Project.findById(projectId);
+    if (!projectDoc) {
       return res.status(404).json({ message: "Project not found" });
     }
 
     // === Ensure only the project owner (client) can view ===
-    const isOwner = project.createdBy.toString() === currentUserId.toString();
+    const isOwner = projectDoc.createdBy.toString() === currentUserId.toString();
 
     if (!isOwner) {
       return res.status(403).json({
@@ -212,16 +216,18 @@ const handleGetApplicationsByProject = async (req, res) => {
     }
 
     // === Fetch applications ===
-    const applications = await Application.find({ projectId }, { projectId: 0 })
+    const applications = await Application.find({ project: projectId })
       .populate({
-        path: "studentId",
-        select: "username email bio",
+        path: "student",
+        select: "-password",
       })
       .sort({ createdAt: -1 });
 
-    return res
-      .status(200)
-      .json({ message: "Applications fetched successfully", project, applications });
+    return res.status(200).json({
+      message: "Applications fetched successfully",
+      project: projectDoc,
+      applications,
+    });
   } catch (err) {
     console.log("Get applications by project error:", err);
     return res.status(500).json({ message: "Server error fetching applications" });
