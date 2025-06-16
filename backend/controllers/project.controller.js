@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const Project = require("../models/project.model");
+const Review = require("../models/review.model");
 
 const { validateProjectInput } = require("../validators/project.validator");
 
@@ -10,6 +11,7 @@ async function handleCreateProject(req, res) {
   }
 
   const { _id: userId } = req.user;
+
   // === Validations ===
   const { error, numericBudget, parsedDeadline } = await validateProjectInput(
     req.body,
@@ -129,31 +131,43 @@ async function handleGetProjects(req, res) {
 }
 
 async function handleGetSpecificProject(req, res) {
-  const { id } = req.params;
+  const { id: projectId } = req.params;
 
   // === Validate MongoDB ObjectId ===
-  if (!mongoose.Types.ObjectId.isValid(id)) {
+  if (!mongoose.Types.ObjectId.isValid(projectId)) {
     return res.status(404).json({ message: "Project not found" });
   }
 
   try {
     // === Fetch project ===
-    const project = await Project.findById(id).populate({
-      path: "createdBy",
-      select: "clientProfile.orgName clientProfile.orgLogoUrl",
-    });
+    const projectDoc = await Project.findById(projectId)
+      .populate({
+        path: "createdBy",
+        select: "clientProfile.orgName clientProfile.orgLogoUrl",
+      })
+      .lean();
 
-    if (!project) {
+    if (!projectDoc) {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    // Only admin, students, or the client who created the project can view
-    const { _id: currentUserId, role } = req.user;
-    if (role === "client" && project.createdBy.toString() !== currentUserId.toString()) {
-      return res.status(403).json({ message: "Not Authorized" });
+    // === If project is completed, fetch reviews ===
+    if (projectDoc.status === "completed") {
+      const reviews = await Review.find(
+        { project: projectId },
+        { _id: 1, rating: 1, comment: 1, createdAt: 1 }
+      )
+        .populate({
+          path: "reviewee",
+          select: "username studentProfile.fullName studentProfile.profileImageUrl",
+        })
+        .lean();
+
+      projectDoc.reviews = reviews;
     }
 
-    return res.status(200).json({ message: "Project found", project });
+    // === Return success response ===
+    return res.status(200).json({ message: "Project found", project: projectDoc });
   } catch (error) {
     console.log("Get specific project error:", error);
     return res

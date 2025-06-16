@@ -2,6 +2,9 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 const User = require("../models/user.model");
+const Project = require("../models/project.model");
+const Review = require("../models/review.model");
+
 const { streamUpload } = require("../utils/fileUpload");
 const { parseJson } = require("../utils/parseJson");
 
@@ -159,4 +162,49 @@ async function handleLoginUser(req, res) {
   }
 }
 
-module.exports = { handleRegisterUser, handleLoginUser };
+// Get anyone's user profile
+async function handleGetUserProfile(req, res) {
+  try {
+    const { id: userId } = req.params;
+
+    // === Fetch user profile ===
+    const userProfile = await User.findById(userId).select("-password").lean();
+
+    if (!userProfile) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // === Fetch reviews if user is a student ===
+    if (userProfile.role === "student") {
+      const reviews = await Review.find(
+        { reviewee: userId },
+        { _id: 1, project: 1, reviewer: 1, rating: 1, comment: 1, createdAt: 1 }
+      )
+        .sort({ createdAt: -1 })
+        .lean();
+
+      // Add reviews to userProfile
+      userProfile.reviews = reviews;
+    }
+    // === Fetch projects if user is a client ===
+    else if (userProfile.role === "client") {
+      const projects = await Project.find(
+        { createdBy: userId },
+        { _id: 1, title: 1, description: 1, status: 1, createdAt: 1 }
+      ).lean();
+
+      // Add projects to userProfile
+      userProfile.projects = projects;
+    }
+
+    // === Return success response ===
+    return res
+      .status(200)
+      .json({ message: "User profile fetched successfully", userProfile });
+  } catch (error) {
+    console.log("Get user profile error:", error);
+    return res.status(500).json({ message: "Server error while fetching user profile" });
+  }
+}
+
+module.exports = { handleRegisterUser, handleLoginUser, handleGetUserProfile };

@@ -6,6 +6,7 @@ const { connectToMongoDB } = require("./connection");
 const userRouter = require("./routes/user.route");
 const projectRouter = require("./routes/project.route");
 const applicationRouter = require("./routes/application.route");
+const reviewRouter = require("./routes/review.route");
 
 const { authenticateUser } = require("./middlewares/auth.middleware");
 
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use("/api/users", userRouter);
 app.use("/api/projects", authenticateUser, projectRouter);
 app.use("/api/applications", authenticateUser, applicationRouter);
+app.use("/api/reviews", authenticateUser, reviewRouter);
 
 const PORT = process.env.PORT || 8000;
 
