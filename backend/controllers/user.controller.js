@@ -1,5 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const validator = require("validator");
 
 const User = require("../models/user.model");
 const Project = require("../models/project.model");
@@ -14,7 +15,11 @@ async function handleRegisterUser(req, res) {
       return res.status(400).json({ message: "Request body is missing" });
     }
 
-    const { username, email, password, role, studentProfile, clientProfile } = req.body;
+    let { username, email, password, role, studentProfile, clientProfile } = req.body;
+
+    // === Trim whitespace ===
+    username = username?.trim();
+    email = email?.trim();
 
     let parsedStudentProfile = parseJson(studentProfile);
     let parsedClientProfile = parseJson(clientProfile);
@@ -24,6 +29,11 @@ async function handleRegisterUser(req, res) {
       return res
         .status(400)
         .json({ message: "Username, email, password, and role are required" });
+    }
+
+    // === Email validation ===
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ message: "Invalid email format" });
     }
 
     // Ensure the role is either 'student' or 'client'
@@ -36,8 +46,8 @@ async function handleRegisterUser(req, res) {
       if (
         !parsedStudentProfile ||
         !parsedStudentProfile.fullName ||
-        !parsedStudentProfile.skills ||
         !parsedStudentProfile.bio ||
+        !parsedStudentProfile.skills ||
         !parsedStudentProfile.portfolioLinks ||
         !parsedStudentProfile.availability
       ) {
@@ -45,19 +55,79 @@ async function handleRegisterUser(req, res) {
           .status(400)
           .json({ message: "Missing or invalid fields in student profile" });
       }
+
+      // Validate skills array
+      if (
+        !Array.isArray(parsedStudentProfile.skills) ||
+        parsedStudentProfile.skills.length === 0
+      ) {
+        return res.status(400).json({ message: "skills must be a non-empty array" });
+      }
+
+      // Validate portfolioLinks array
+      if (
+        !Array.isArray(parsedStudentProfile.portfolioLinks) ||
+        parsedStudentProfile.portfolioLinks.length === 0
+      ) {
+        return res
+          .status(400)
+          .json({ message: "portfolioLinks must be a non-empty array" });
+      }
+
+      // Validate availability
+      const validAvailabilities = [
+        "10hrs/week",
+        "15hrs/week",
+        "20hrs/week",
+        "24hrs/week",
+      ];
+
+      if (!validAvailabilities.includes(parsedStudentProfile.availability)) {
+        return res.status(400).json({ message: "Invalid availability option provided" });
+      }
     }
 
     if (role === "client") {
+      // Ensure client profile has required fields
       if (
         !parsedClientProfile ||
         !parsedClientProfile.orgName ||
-        !parsedClientProfile.orgDescription
-        // socialLinks is optional
+        !parsedClientProfile.orgDescription ||
+        !parsedClientProfile.socialLinks
       ) {
         return res
           .status(400)
           .json({ message: "Missing or invalid fields in client profile" });
       }
+
+      // Sanitize socialLinks if present
+      const socialLinks = parsedClientProfile.socialLinks;
+
+      // Check if socialLinks NOT an object
+      if (typeof socialLinks !== "object" || Array.isArray(socialLinks)) {
+        return res.status(400).json({ message: "Social links must be an object" });
+      }
+
+      // Destructure safely
+      const { linkedin, twitter, website } = socialLinks;
+
+      // Validate non-empty fields
+      if (linkedin && !validator.isURL(linkedin)) {
+        return res.status(400).json({ message: "Invalid LinkedIn URL provided" });
+      }
+      if (twitter && !validator.isURL(twitter)) {
+        return res.status(400).json({ message: "Invalid Twitter URL provided" });
+      }
+      if (website && !validator.isURL(website)) {
+        return res.status(400).json({ message: "Invalid Website URL provided" });
+      }
+
+      // Ensure socialLinks is an object with valid URLs
+      parsedClientProfile.socialLinks = {
+        linkedin: linkedin || "",
+        twitter: twitter || "",
+        website: website || "",
+      };
     }
 
     // Ensure user image is present (middleware silently drops bad files)
@@ -70,7 +140,7 @@ async function handleRegisterUser(req, res) {
     }
 
     // === Uniqueness check ===
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] }).lean();
     if (existingUser) {
       return res
         .status(400)
@@ -114,24 +184,34 @@ async function handleRegisterUser(req, res) {
 }
 
 async function handleLoginUser(req, res) {
-  if (!req.body) {
-    return res.status(400).json({ message: "Request body is missing" });
-  }
-
-  const { email, password } = req.body;
-
-  // === Basic field validations ===
-  if (!email || !password) {
-    return res.status(400).json({ message: "Email and password are required" });
-  }
-
   try {
-    const dbUser = await User.findOne({ email });
+    if (!req.body) {
+      return res.status(400).json({ message: "Request body is missing" });
+    }
+
+    let { email, password } = req.body;
+
+    // === Trim whitespace ===
+    email = email?.trim();
+
+    // === Basic field validations ===
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    // === Email validation ===
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ message: "Invalid email format" });
+    }
+
+    // === Fetch user by email ===
+    const dbUser = await User.findOne({ email }).lean();
 
     if (!dbUser) {
       return res.status(400).json({ message: "Invalid user credentials" });
     }
 
+    // === Check if password matches ===
     const isPasswordMatched = await bcrypt.compare(password, dbUser.password);
 
     if (!isPasswordMatched) {

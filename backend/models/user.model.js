@@ -8,7 +8,11 @@ const StudentProfileSchema = new mongoose.Schema(
     bio: { type: String, required: true },
     profileImageUrl: { type: String, required: true },
     portfolioLinks: { type: [String], required: true },
-    availability: { type: String, required: true },
+    availability: {
+      type: String,
+      enum: ["10hrs/week", "15hrs/week", "20hrs/week", "24hrs/week"],
+      required: true,
+    },
   },
   { _id: false }
 );
@@ -20,9 +24,15 @@ const ClientProfileSchema = new mongoose.Schema(
     orgDescription: { type: String, required: true },
     orgLogoUrl: { type: String, required: true },
     socialLinks: {
-      linkedin: String,
-      twitter: String,
-      github: String,
+      type: new mongoose.Schema(
+        {
+          linkedin: { type: String },
+          twitter: { type: String },
+          website: { type: String },
+        },
+        { _id: false, strict: true } // Enforces only these fields
+      ),
+      required: true,
     },
   },
   { _id: false }
