@@ -7,7 +7,7 @@ const cloudinary = require("../configs/cloudinary.config");
 
 const handleCreateApplication = async (req, res) => {
   const { projectId } = req.body;
-  const { _id: studentId } = req.user;
+  const { _id: currentUserId } = req.user;
 
   // === Validate MongoDB ObjectId ===
   if (!mongoose.Types.ObjectId.isValid(projectId)) {
@@ -24,7 +24,7 @@ const handleCreateApplication = async (req, res) => {
     // === Check if already applied ===
     const existing = await Application.findOne({
       project: projectId,
-      student: studentId,
+      student: currentUserId,
     });
 
     if (existing) {
@@ -54,11 +54,12 @@ const handleCreateApplication = async (req, res) => {
     // === Create application ===
     const resultApplication = await Application.create({
       project: projectId,
-      student: studentId,
+      student: currentUserId,
       resume: cloudinaryUpload.secure_url,
       status: "pending",
     });
 
+    // === Return success response ===
     return res.status(201).json({
       message: "Application created successfully",
       applicationId: resultApplication._id,
@@ -86,7 +87,9 @@ const handleDeleteApplication = async (req, res) => {
 
     // === Check if user is the owner (student) ===
     const { _id: currentUserId } = req.user;
-    if (application.student.toString() !== currentUserId.toString()) {
+    const isCreator = application.student.toString() === currentUserId.toString();
+
+    if (!isCreator) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
@@ -104,6 +107,7 @@ const handleDeleteApplication = async (req, res) => {
     // Delete application from DB
     await Application.findByIdAndDelete(applicationId);
 
+    // === Return success response ===
     res.status(200).json({ message: "Application deleted successfully" });
   } catch (err) {
     console.log("Delete application error: ", err);
@@ -136,15 +140,18 @@ const handleUpdateApplicationStatus = async (req, res) => {
     // === Ensure only the project owner (client) can update ===
     const projectOwnerId = application.project.createdBy;
     const { _id: currentUserId } = req.user;
-    if (projectOwnerId.toString() !== currentUserId.toString()) {
+
+    const isCreator = projectOwnerId.toString() === currentUserId.toString();
+
+    if (!isCreator) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    // Allow status update only if project is 'open'
-    if (application.project.status !== "open") {
+    // Don't allow status change if project is completed
+    if (application.project.status === "completed") {
       return res
         .status(400)
-        .json({ message: "Cannot change application status. Project is not open" });
+        .json({ message: "Cannot change application status. Project is completed" });
     }
 
     // Avoid re-updating with the same status
@@ -159,12 +166,13 @@ const handleUpdateApplicationStatus = async (req, res) => {
       { new: true }
     );
 
+    // === Return success response ===
     res.json({
-      message: `Application ${status} successfully`,
+      message: `Application status updated to ${status} successfully`,
       application: updatedApplication,
     });
   } catch (err) {
-    console.error("Update application status error:", err);
+    console.log("Update application status error:", err);
     res.status(500).json({ message: "Server error while updating application status" });
   }
 };
@@ -181,6 +189,7 @@ const handleGetApplicationsByStudent = async (req, res) => {
       })
       .sort({ createdAt: -1 });
 
+    // === Return success response ===
     return res
       .status(200)
       .json({ message: "Applications fetched successfully", applications });
@@ -192,7 +201,6 @@ const handleGetApplicationsByStudent = async (req, res) => {
 
 const handleGetApplicationsByProject = async (req, res) => {
   const { projectId } = req.params;
-  const { _id: currentUserId } = req.user;
 
   // === Validate MongoDB ObjectId ===
   if (!mongoose.Types.ObjectId.isValid(projectId)) {
@@ -206,10 +214,12 @@ const handleGetApplicationsByProject = async (req, res) => {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    // === Ensure only the project owner (client) can view ===
-    const isOwner = projectDoc.createdBy.toString() === currentUserId.toString();
+    // === Ensure only the project owner (client) or admin can view ===
+    const { _id: currentUserId, role } = req.user;
 
-    if (!isOwner) {
+    const isCreator = projectDoc.createdBy.toString() === currentUserId.toString();
+
+    if (!isCreator && role !== "admin") {
       return res.status(403).json({
         message: "Not authorized",
       });
@@ -223,6 +233,7 @@ const handleGetApplicationsByProject = async (req, res) => {
       })
       .sort({ createdAt: -1 });
 
+    // === Return success response ===
     return res.status(200).json({
       message: "Applications fetched successfully",
       project: projectDoc,
@@ -235,16 +246,15 @@ const handleGetApplicationsByProject = async (req, res) => {
 };
 
 const handleGetSingleApplication = async (req, res) => {
-  const { applicationId } = req.params;
-  const { _id: currentUserId } = req.user;
+  const { id: applicationId } = req.params;
 
-  // Validate MongoDB ObjectId
+  // === Validate MongoDB ObjectId ===
   if (!mongoose.Types.ObjectId.isValid(applicationId)) {
     return res.status(404).json({ message: "Application not found" });
   }
 
   try {
-    // Fetch the application and populate student and project details
+    // === Fetch the application and populate student and project details ===
     const application = await Application.findById(applicationId)
       .populate({
         path: "student",
@@ -259,8 +269,16 @@ const handleGetSingleApplication = async (req, res) => {
       return res.status(404).json({ message: "Application not found" });
     }
 
-  
+    // === Ensure only the project owner (client) can update ===
+    const projectCreatorId = application.project.createdBy;
+    const { _id: currentUserId, role } = req.user;
 
+    const isCreator = projectCreatorId.toString() === currentUserId.toString();
+    if (!isCreator && role !== "admin") {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    // === Return success response ===
     return res.status(200).json({
       message: "Application fetched successfully",
       application,
@@ -271,12 +289,11 @@ const handleGetSingleApplication = async (req, res) => {
   }
 };
 
-
 module.exports = {
   handleCreateApplication,
   handleDeleteApplication,
   handleUpdateApplicationStatus,
   handleGetApplicationsByStudent,
   handleGetApplicationsByProject,
-  handleGetSingleApplication
+  handleGetSingleApplication,
 };
