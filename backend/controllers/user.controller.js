@@ -162,7 +162,6 @@ async function handleLoginUser(req, res) {
   }
 }
 
-// Get anyone's user profile
 async function handleGetUserProfile(req, res) {
   try {
     const { id: userId } = req.params;
@@ -207,4 +206,12 @@ async function handleGetUserProfile(req, res) {
   }
 }
 
-module.exports = { handleRegisterUser, handleLoginUser, handleGetUserProfile };
+// Pending...
+async function handleUpdateUserProfile(req, res) {}
+
+module.exports = {
+  handleRegisterUser,
+  handleLoginUser,
+  handleGetUserProfile,
+  handleUpdateUserProfile,
+};

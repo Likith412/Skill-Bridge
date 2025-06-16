@@ -6,6 +6,7 @@ const {
   handleRegisterUser,
   handleLoginUser,
   handleGetUserProfile,
+  handleUpdateUserProfile,
 } = require("../controllers/user.controller");
 
 const router = express.Router();
@@ -15,6 +16,9 @@ router.post("/register", profileUpload.single("userImage"), handleRegisterUser);
 router.post("/login", handleLoginUser);
 
 // User profile route
-router.get("/:id/profile", authenticateUser, handleGetUserProfile);
+router
+  .route("/:id/profile")
+  .get(authenticateUser, handleGetUserProfile)
+  .put(authenticateUser, profileUpload.single("userImage"), handleUpdateUserProfile);
 
 module.exports = router;
