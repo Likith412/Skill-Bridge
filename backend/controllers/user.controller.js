@@ -287,7 +287,83 @@ async function handleGetUserProfile(req, res) {
 }
 
 // Pending...
-async function handleUpdateUserProfile(req, res) {}
+async function handleUpdateUserProfile(req, res) {
+  const User = require("../models/user.model");
+
+const handleUpdateUserProfile = async (req, res) => {
+  try {
+    const { id: userId } = req.params;
+    const updates = req.body;
+
+    // Fetch existing user
+    const existingUser = await User.findById(userId);
+    if (!existingUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Prevent changing username or password
+    if ("username" in updates || "password" in updates) {
+      return res.status(400).json({ message: "Username and password cannot be updated" });
+    }
+
+    const updateData = {};
+
+    // === Student profile update ===
+    if (existingUser.role === "student" && updates.studentProfile) {
+      const {
+        fullName,
+        skills,
+        bio,
+        portfolioLinks,
+        availability,
+      } = updates.studentProfile;
+
+      updateData.studentProfile = {
+        fullName,
+        skills,
+        bio,
+        portfolioLinks,
+        availability,
+        profileImageUrl: existingUser.studentProfile.profileImageUrl, // keep old one
+      };
+    }
+
+    // === Client profile update ===
+    if (existingUser.role === "client" && updates.clientProfile) {
+      const {
+        orgName,
+        orgDescription,
+        socialLinks,
+      } = updates.clientProfile;
+
+      updateData.clientProfile = {
+        orgName,
+        orgDescription,
+        socialLinks,
+        orgLogoUrl: existingUser.clientProfile.orgLogoUrl, // keep old one
+      };
+    }
+
+    // Run the update
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    return res.status(200).json({
+      message: "User profile updated successfully",
+      userProfile: updatedUser,
+    });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    return res.status(500).json({ message: "Server error while updating profile" });
+  }
+};
+
+module.exports = { handleUpdateUserProfile };
+
+}
 
 module.exports = {
   handleRegisterUser,

@@ -23,22 +23,24 @@ router.post(
   handleCreateApplication
 );
 
-router
-  .route("/:id")
-  .get(authorizeUserRoles("client", "admin"), handleGetSingleApplication) // only client can view application
-  .delete(authorizeUserRoles("student"), handleDeleteApplication); // only student can delete
+// only student can delete
+router.delete("/:id", authorizeUserRoles("student"), handleDeleteApplication);
 
 // only client can change the application status
 router.patch("/:id/status", authorizeUserRoles("client"), handleUpdateApplicationStatus);
 
-// only student can view their applications
 router.get("/student", authorizeUserRoles("student"), handleGetApplicationsByStudent);
 
-// only client and admin can view applications by project
 router.get(
   "/project/:projectId",
   authorizeUserRoles("client", "admin"),
   handleGetApplicationsByProject
 );
+router.get(
+  "/application/:applicationId",
+  authorizeUserRoles("client"),
+  handleGetSingleApplication
+);
+
 
 module.exports = router;
