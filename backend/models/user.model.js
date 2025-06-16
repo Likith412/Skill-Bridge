@@ -14,7 +14,7 @@ const StudentProfileSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { _id: false }
+  { _id: false, strict: true }
 );
 
 // Client Profile Subschema
@@ -35,7 +35,7 @@ const ClientProfileSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { _id: false }
+  { _id: false, strict: true }
 );
 
 // Main User Schema
@@ -67,7 +67,7 @@ const userSchema = new mongoose.Schema(
       },
     },
   },
-  { timestamps: true }
+  { timestamps: true, strict: true }
 );
 
 const User = mongoose.model("User", userSchema);

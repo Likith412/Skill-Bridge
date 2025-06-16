@@ -7,7 +7,7 @@ const Project = require("../models/project.model");
 const Review = require("../models/review.model");
 
 const { streamUpload } = require("../utils/fileUpload");
-const { parseJson } = require("../utils/parseJson");
+const { validateUserProfileInput } = require("../validators/user.validator");
 
 async function handleRegisterUser(req, res) {
   try {
@@ -18,11 +18,8 @@ async function handleRegisterUser(req, res) {
     let { username, email, password, role, studentProfile, clientProfile } = req.body;
 
     // === Trim whitespace ===
-    username = username?.trim();
-    email = email?.trim();
-
-    let parsedStudentProfile = parseJson(studentProfile);
-    let parsedClientProfile = parseJson(clientProfile);
+    username = username?.toLowerCase().trim();
+    email = email?.toLowerCase().trim();
 
     // === Basic field validations ===
     if (!username || !email || !password || !role) {
@@ -41,102 +38,14 @@ async function handleRegisterUser(req, res) {
       return res.status(400).json({ message: "Invalid role provided" });
     }
 
-    // === Role-based profile validation ===
-    if (role === "student") {
-      if (
-        !parsedStudentProfile ||
-        !parsedStudentProfile.fullName ||
-        !parsedStudentProfile.bio ||
-        !parsedStudentProfile.skills ||
-        !parsedStudentProfile.portfolioLinks ||
-        !parsedStudentProfile.availability
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Missing or invalid fields in student profile" });
-      }
+    // === User profile validation ===
+    const { error, parsedClientProfile, parsedStudentProfile } = validateUserProfileInput(
+      { studentProfile, clientProfile },
+      role
+    );
 
-      // Validate skills array
-      if (
-        !Array.isArray(parsedStudentProfile.skills) ||
-        parsedStudentProfile.skills.length === 0
-      ) {
-        return res.status(400).json({ message: "skills must be a non-empty array" });
-      }
-
-      // Validate portfolioLinks array
-      if (
-        !Array.isArray(parsedStudentProfile.portfolioLinks) ||
-        parsedStudentProfile.portfolioLinks.length === 0
-      ) {
-        return res
-          .status(400)
-          .json({ message: "portfolioLinks must be a non-empty array" });
-      }
-
-      // Validate availability
-      const validAvailabilities = [
-        "10hrs/week",
-        "15hrs/week",
-        "20hrs/week",
-        "24hrs/week",
-      ];
-
-      if (!validAvailabilities.includes(parsedStudentProfile.availability)) {
-        return res.status(400).json({ message: "Invalid availability option provided" });
-      }
-    }
-
-    if (role === "client") {
-      // Ensure client profile has required fields
-      if (
-        !parsedClientProfile ||
-        !parsedClientProfile.orgName ||
-        !parsedClientProfile.orgDescription ||
-        !parsedClientProfile.socialLinks
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Missing or invalid fields in client profile" });
-      }
-
-      // Sanitize socialLinks if present
-      const socialLinks = parsedClientProfile.socialLinks;
-
-      // Check if socialLinks NOT an object
-      if (typeof socialLinks !== "object" || Array.isArray(socialLinks)) {
-        return res.status(400).json({ message: "Social links must be an object" });
-      }
-
-      // Destructure safely
-      const { linkedin, twitter, website } = socialLinks;
-
-      // Validate non-empty fields
-      if (linkedin && !validator.isURL(linkedin)) {
-        return res.status(400).json({ message: "Invalid LinkedIn URL provided" });
-      }
-      if (twitter && !validator.isURL(twitter)) {
-        return res.status(400).json({ message: "Invalid Twitter URL provided" });
-      }
-      if (website && !validator.isURL(website)) {
-        return res.status(400).json({ message: "Invalid Website URL provided" });
-      }
-
-      // Ensure socialLinks is an object with valid URLs
-      parsedClientProfile.socialLinks = {
-        linkedin: linkedin || "",
-        twitter: twitter || "",
-        website: website || "",
-      };
-    }
-
-    // Ensure user image is present (middleware silently drops bad files)
-    if (!req.file) {
-      if (role === "student") {
-        return res.status(400).json({ message: "Profile image is required" });
-      } else {
-        return res.status(400).json({ message: "Organisation Logo is required" });
-      }
+    if (error) {
+      return res.status(400).json({ message: error });
     }
 
     // === Uniqueness check ===
@@ -147,17 +56,35 @@ async function handleRegisterUser(req, res) {
         .json({ message: "User already exists with given email or username" });
     }
 
-    // === Upload image to Cloudinary ===
-    const uploadResult = await streamUpload(req.file.buffer, {
-      folder: "skillbridge/userImages",
-    });
+    // === Default image URL based on role ===
+    const DEFAULT_IMAGE_URL =
+      role === "student"
+        ? "https://res.cloudinary.com/dtz9sclra/image/upload/v1750100782/skillbridge/userImages/08350cafa4fabb8a6a1be2d9f18f2d88_rqzpsk.jpg"
+        : "https://res.cloudinary.com/dtz9sclra/image/upload/v1750101610/skillbridge/userImages/1702503196049_edvubj.jpg";
 
+    let imageUrl = DEFAULT_IMAGE_URL;
+
+    // === If user uploaded an image, handle it. else use default ===
+    if (req.file) {
+      try {
+        // Upload image to Cloudinary
+        const uploadResult = await streamUpload(req.file.buffer, {
+          folder: "skillbridge/userImages",
+        });
+
+        imageUrl = uploadResult.secure_url;
+      } catch (error) {
+        console.log("Image upload error:", error);
+      }
+    }
+
+    // === Assign image URL based on role ===
     if (role === "student") {
-      parsedStudentProfile.profileImageUrl = uploadResult.secure_url;
+      parsedStudentProfile.profileImageUrl = imageUrl;
     }
 
     if (role === "client") {
-      parsedClientProfile.orgLogoUrl = uploadResult.secure_url;
+      parsedClientProfile.orgLogoUrl = imageUrl;
     }
 
     // Hash password
@@ -192,7 +119,7 @@ async function handleLoginUser(req, res) {
     let { email, password } = req.body;
 
     // === Trim whitespace ===
-    email = email?.trim();
+    email = email?.toLowerCase().trim();
 
     // === Basic field validations ===
     if (!email || !password) {
@@ -286,83 +213,63 @@ async function handleGetUserProfile(req, res) {
   }
 }
 
-// Pending...
 async function handleUpdateUserProfile(req, res) {
-  const User = require("../models/user.model");
-
-const handleUpdateUserProfile = async (req, res) => {
   try {
     const { id: userId } = req.params;
-    const updates = req.body;
+    const { _id: currentUserId, role } = req.user;
 
-    // Fetch existing user
-    const existingUser = await User.findById(userId);
-    if (!existingUser) {
-      return res.status(404).json({ message: "User not found" });
+    // Ensure the user is updating their own profile
+    const isAuthorized = currentUserId.toString() === userId.toString();
+
+    if (!isAuthorized) {
+      return res.status(403).json({ message: "Not authorized" });
     }
 
-    // Prevent changing username or password
-    if ("username" in updates || "password" in updates) {
-      return res.status(400).json({ message: "Username and password cannot be updated" });
+    let { studentProfile, clientProfile } = req.body;
+
+    const { error, parsedClientProfile, parsedStudentProfile } = validateUserProfileInput(
+      { studentProfile, clientProfile },
+      role
+    );
+
+    if (error) {
+      return res.status(400).json({ message: error });
+    }
+
+    // Ensure user image is present (middleware silently drops bad files)
+    if (req.file) {
+      // === Upload image to Cloudinary ===
+      const uploadResult = await streamUpload(req.file.buffer, {
+        folder: "skillbridge/userImages",
+      });
+
+      if (role === "student") {
+        parsedStudentProfile.profileImageUrl = uploadResult.secure_url;
+      }
+
+      if (role === "client") {
+        parsedClientProfile.orgLogoUrl = uploadResult.secure_url;
+      }
     }
 
     const updateData = {};
 
-    // === Student profile update ===
-    if (existingUser.role === "student" && updates.studentProfile) {
-      const {
-        fullName,
-        skills,
-        bio,
-        portfolioLinks,
-        availability,
-      } = updates.studentProfile;
-
-      updateData.studentProfile = {
-        fullName,
-        skills,
-        bio,
-        portfolioLinks,
-        availability,
-        profileImageUrl: existingUser.studentProfile.profileImageUrl, // keep old one
-      };
+    if (role === "student") {
+      updateData.studentProfile = parsedStudentProfile;
+    } else if (role === "client") {
+      updateData.clientProfile = parsedClientProfile;
     }
 
-    // === Client profile update ===
-    if (existingUser.role === "client" && updates.clientProfile) {
-      const {
-        orgName,
-        orgDescription,
-        socialLinks,
-      } = updates.clientProfile;
+    // === Update user ===
+    const newUser = await User.findByIdAndUpdate(userId, updateData, { new: true });
 
-      updateData.clientProfile = {
-        orgName,
-        orgDescription,
-        socialLinks,
-        orgLogoUrl: existingUser.clientProfile.orgLogoUrl, // keep old one
-      };
-    }
-
-    // Run the update
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    ).select("-password");
-
-    return res.status(200).json({
-      message: "User profile updated successfully",
-      userProfile: updatedUser,
-    });
+    return res
+      .status(200)
+      .json({ message: "User profile updated successfully", user: newUser });
   } catch (error) {
-    console.error("Error updating profile:", error);
-    return res.status(500).json({ message: "Server error while updating profile" });
+    console.log("Update user profile error:", error);
+    return res.status(500).json({ message: "Server error during profile update" });
   }
-};
-
-module.exports = { handleUpdateUserProfile };
-
 }
 
 module.exports = {
