@@ -8,6 +8,7 @@ const Review = require("../models/review.model");
 
 const { streamUpload } = require("../utils/fileUpload");
 const { validateUserProfileInput } = require("../validators/user.validator");
+const Application = require("../models/application.model");
 
 async function handleRegisterUser(req, res) {
   try {
@@ -96,6 +97,7 @@ async function handleRegisterUser(req, res) {
       email,
       password: hashedPassword,
       role,
+      ...(role !== "admin" && { isBlocked: false }), // Admins are never blocked
       ...(role === "student" && { studentProfile: parsedStudentProfile }),
       ...(role === "client" && { clientProfile: parsedClientProfile }),
     });
@@ -132,7 +134,7 @@ async function handleLoginUser(req, res) {
     }
 
     // === Fetch user by email ===
-    const dbUser = await User.findOne({ email }).lean();
+    const dbUser = await User.findOne({ email });
 
     if (!dbUser) {
       return res.status(400).json({ message: "Invalid user credentials" });
@@ -230,6 +232,10 @@ async function handleUpdateUserProfile(req, res) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
+    if (!req.body) {
+      return res.status(400).json({ message: "Request body is missing" });
+    }
+
     let { studentProfile, clientProfile } = req.body;
 
     const { error, parsedClientProfile, parsedStudentProfile } = validateUserProfileInput(
@@ -276,9 +282,54 @@ async function handleUpdateUserProfile(req, res) {
   }
 }
 
+async function handleDeleteUser(req, res) {
+  try {
+    const { id: userId } = req.params;
+    const { _id: currentUserId, role: currentUserRole } = req.user;
+
+    // Ensure the user is deleting their own profile or is an admin
+    const isAuthorized =
+      currentUserId.toString() === userId.toString() || currentUserRole === "admin";
+
+    if (!isAuthorized) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    // === Get the user to be deleted ===
+    const userToDelete = await User.findById(userId);
+    if (!userToDelete) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const userRole = userToDelete.role;
+
+    // === Delete user ===
+    await User.findByIdAndDelete(userId);
+
+    if (userRole === "client") {
+      // Fetch all projects created by the client
+      const projects = await Project.find({ createdBy: userId });
+      const projectIds = projects.map(project => project._id);
+
+      await Project.deleteMany({ createdBy: userId }); // Delete all projects created by the client
+      await Review.deleteMany({ reviewer: userId }); // Delete all reviews written by the client
+      await Application.deleteMany({ project: { $in: projectIds } }); // Delete all applications for the client's projects
+    } else if (userRole === "student") {
+      await Review.deleteMany({ reviewee: userId }); // Delete all reviews written for the student
+      await Application.deleteMany({ student: userId }); // Delete all applications made by the student
+    }
+
+    return res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.log("Delete user error:", error);
+    return res.status(500).json({ message: "Server error during user deletion" });
+  }
+}
+
 module.exports = {
   handleRegisterUser,
   handleLoginUser,
   handleGetUserProfile,
   handleUpdateUserProfile,
+  handleDeleteUser,
 };

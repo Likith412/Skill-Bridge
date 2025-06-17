@@ -6,7 +6,7 @@ const projectSchema = new mongoose.Schema(
     description: { type: String, required: true },
     budget: { type: Number, required: true },
     deadline: { type: Date, required: true },
-    requiredSkills: [String],
+    requiredSkills: { type: [String], required: true },
     status: {
       type: String,
       enum: ["open", "in-progress", "completed", "cancelled"],

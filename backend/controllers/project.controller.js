@@ -10,12 +10,12 @@ async function handleCreateProject(req, res) {
     return res.status(400).json({ message: "Request body is missing" });
   }
 
-  const { _id: userId } = req.user;
+  const { _id: currentUserId } = req.user;
 
   // === Validations ===
   const { error, numericBudget, parsedDeadline } = await validateProjectInput(
     req.body,
-    userId
+    currentUserId
   );
 
   if (error) return res.status(400).json({ message: error });
@@ -31,9 +31,10 @@ async function handleCreateProject(req, res) {
       deadline: parsedDeadline,
       requiredSkills,
       status,
-      createdBy: userId,
+      createdBy: currentUserId,
     });
 
+    // === Return success response ===
     return res.status(201).json({
       message: "Project created successfully",
       projectId: resultProject._id,
@@ -49,13 +50,13 @@ async function handleGetProjects(req, res) {
     const { status, skills, minBudget, maxBudget, beforeDeadline, afterDeadline } =
       req.query;
 
-    const { role, _id: userId } = req.user;
+    const { role, _id: currentUserId } = req.user;
 
     const filter = {};
 
     // === Role-based access ===
     if (role === "client") {
-      filter.createdBy = userId; // updated here
+      filter.createdBy = currentUserId; // updated here
     } else if (role === "student") {
       if (status && status !== "open") {
         return res.status(403).json({ message: "Students can only view open projects" });
@@ -116,12 +117,13 @@ async function handleGetProjects(req, res) {
     }
 
     // === Fetch projects sorted by newest first ===
-    const projects = await Project.find(filter)
+    const projects = await Project.find(filter, { updatedAt: 0 })
       .populate({
         path: "createdBy",
         select: "clientProfile.orgName clientProfile.orgLogoUrl",
       })
-      .sort({ createdAt: -1 }); // newest first
+      .sort({ createdAt: -1 }) // newest first
+      .lean();
 
     return res.status(200).json({ message: "Projects fetched successfully", projects });
   } catch (error) {
@@ -140,7 +142,7 @@ async function handleGetSpecificProject(req, res) {
 
   try {
     // === Fetch project ===
-    const projectDoc = await Project.findById(projectId)
+    const projectDoc = await Project.findById(projectId, { updatedAt: 0 })
       .populate({
         path: "createdBy",
         select: "clientProfile.orgName clientProfile.orgLogoUrl",
@@ -149,6 +151,15 @@ async function handleGetSpecificProject(req, res) {
 
     if (!projectDoc) {
       return res.status(404).json({ message: "Project not found" });
+    }
+
+    // === If the user is a client, check if they are the owner of the project ===
+    const { _id: currentUserId, role } = req.user;
+    if (role === "client") {
+      const isOwner = projectDoc.createdBy._id.toString() === currentUserId.toString();
+      if (!isOwner) {
+        return res.status(403).json({ message: "Not Authorized" });
+      }
     }
 
     // === If project is completed, fetch reviews ===
@@ -223,13 +234,12 @@ async function handleUpdateSpecificProject(req, res) {
       status,
     };
 
-    const updatedProject = await Project.findByIdAndUpdate(id, updatedData, {
+    await Project.findByIdAndUpdate(id, updatedData, {
       new: true,
     });
 
     return res.status(200).json({
       message: "Project updated successfully",
-      project: updatedProject,
     });
   } catch (error) {
     console.log("Update error:", error);

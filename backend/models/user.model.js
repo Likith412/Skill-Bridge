@@ -51,7 +51,12 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
 
-    isBlocked: { type: Boolean, default: false },
+    isBlocked: {
+      type: Boolean,
+      required: function () {
+        return this.role !== "admin";
+      },
+    },
 
     studentProfile: {
       type: StudentProfileSchema,

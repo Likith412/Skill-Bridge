@@ -1,10 +1,14 @@
 const express = require("express");
 const { profileUpload } = require("../middlewares/multer.middleware");
-const { authenticateUser } = require("../middlewares/auth.middleware");
+const {
+  authenticateUser,
+  authorizeUserRoles,
+} = require("../middlewares/auth.middleware");
 
 const {
   handleRegisterUser,
   handleLoginUser,
+  handleDeleteUser,
   handleGetUserProfile,
   handleUpdateUserProfile,
 } = require("../controllers/user.controller");
@@ -19,6 +23,12 @@ router.post("/login", handleLoginUser);
 router
   .route("/:id/profile")
   .get(authenticateUser, handleGetUserProfile)
-  .put(authenticateUser, profileUpload.single("userImage"), handleUpdateUserProfile);
+  .put(
+    authenticateUser,
+    authorizeUserRoles("client", "student"),
+    profileUpload.single("userImage"),
+    handleUpdateUserProfile
+  );
 
+router.delete("/:id", authenticateUser, handleDeleteUser);
 module.exports = router;

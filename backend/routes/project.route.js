@@ -21,9 +21,8 @@ router
 router
   .route("/:id")
   .get(handleGetSpecificProject) // anyone can view specific project
-  .delete(authorizeUserRoles("client"), handleDeleteSpecificProject); // only client can delete
-
-router.put("/edit/:id", authorizeUserRoles("client"), handleUpdateSpecificProject); // only client can update
+  .delete(authorizeUserRoles("client"), handleDeleteSpecificProject) // only client can delete
+  .put(authorizeUserRoles("client"), handleUpdateSpecificProject); // only client can update
 
 router.post("/:id/review", authorizeUserRoles("client"), handleCreateReview); // only client can create a review for students assigned to a project
 
