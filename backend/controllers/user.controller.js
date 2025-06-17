@@ -158,6 +158,7 @@ async function handleLoginUser(req, res) {
       expiresIn: "7d",
     });
 
+    // === Return success response ===
     return res.status(200).json({
       message: "Login successful",
       user: payload,
@@ -174,7 +175,11 @@ async function handleGetUserProfile(req, res) {
     const { id: userId } = req.params;
 
     // === Fetch user profile ===
-    const userProfile = await User.findById(userId).select("-password").lean();
+    const userProfile = await User.findById(userId, {
+      password: 0,
+      updatedAt: 0,
+      __v: 0,
+    }).lean();
 
     if (!userProfile) {
       return res.status(404).json({ message: "User not found" });
@@ -261,11 +266,10 @@ async function handleUpdateUserProfile(req, res) {
     }
 
     // === Update user ===
-    const newUser = await User.findByIdAndUpdate(userId, updateData, { new: true });
+    await User.findByIdAndUpdate(userId, updateData, { new: true });
 
-    return res
-      .status(200)
-      .json({ message: "User profile updated successfully", user: newUser });
+    // === Return success response ===
+    return res.status(200).json({ message: "User profile updated successfully" });
   } catch (error) {
     console.log("Update user profile error:", error);
     return res.status(500).json({ message: "Server error during profile update" });

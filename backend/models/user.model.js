@@ -24,6 +24,7 @@ const ClientProfileSchema = new mongoose.Schema(
     orgDescription: { type: String, required: true },
     orgLogoUrl: { type: String, required: true },
     socialLinks: {
+      // optional social links
       type: new mongoose.Schema(
         {
           linkedin: { type: String },
@@ -32,7 +33,6 @@ const ClientProfileSchema = new mongoose.Schema(
         },
         { _id: false, strict: true } // Enforces only these fields
       ),
-      required: true,
     },
   },
   { _id: false, strict: true }

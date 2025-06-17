@@ -53,37 +53,47 @@ function validateUserProfileInput(data, role) {
     orgName = orgName ? orgName.trim() : "";
     orgDescription = orgDescription ? orgDescription.trim() : "";
 
-    // Check for required fields
-    if (!orgName || !orgDescription || !socialLinks) {
+    // Check for required fields. Social links are optional
+    if (!orgName || !orgDescription) {
       return { error: "Missing required fields in client profile" };
     }
 
-    // Validate socialLinks
-    if (typeof socialLinks !== "object" || Array.isArray(socialLinks)) {
-      return { error: "Social links must be a valid object" };
+    // If socialLinks is provided, validate it
+    if (socialLinks) {
+      // Must be an object and not an array
+      if (typeof socialLinks !== "object" || Array.isArray(socialLinks)) {
+        return { error: "Social links must be a valid object" };
+      }
+
+      const allowedKeys = ["linkedin", "twitter", "website"];
+      const keys = Object.keys(socialLinks);
+
+      // Disallow any unexpected keys
+      const hasInvalidKeys = keys.some(key => !allowedKeys.includes(key));
+      if (hasInvalidKeys) {
+        return { error: "Social links can only include linkedin, twitter, and website" };
+      }
+
+      // Prepare filtered & validated socialLinks
+      const validSocialLinks = {};
+
+      for (const key of allowedKeys) {
+        const value = socialLinks[key];
+        if (value && typeof value === "string") {
+          if (!validator.isURL(value)) {
+            return { error: `Invalid ${key} URL` };
+          }
+
+          // Store only valid URLs
+          validSocialLinks[key] = value;
+        }
+      }
+
+      // Store only if there is at least one valid non-empty entry
+      if (Object.keys(validSocialLinks).length > 0) {
+        clientProfile.socialLinks = validSocialLinks;
+      }
     }
-
-    const { linkedin, twitter, website } = socialLinks;
-
-    // Validate URLs
-    if (linkedin && !validator.isURL(linkedin)) {
-      return { error: "Invalid LinkedIn URL" };
-    }
-
-    if (twitter && !validator.isURL(twitter)) {
-      return { error: "Invalid Twitter URL" };
-    }
-
-    if (website && !validator.isURL(website)) {
-      return { error: "Invalid Website URL" };
-    }
-
-    // Normalize socialLinks to ensure consistent structure
-    clientProfile.socialLinks = {
-      linkedin: linkedin || "",
-      twitter: twitter || "",
-      website: website || "",
-    };
   }
 
   // If all validations pass, return the validated profiles
