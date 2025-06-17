@@ -11,6 +11,7 @@ const {
   handleDeleteUser,
   handleGetUserProfile,
   handleUpdateUserProfile,
+  handleBlockUser
 } = require("../controllers/user.controller");
 
 const router = express.Router();
@@ -29,6 +30,14 @@ router
     profileUpload.single("userImage"),
     handleUpdateUserProfile
   );
+
+  router.put(
+  "/block/:userId",
+  authenticateUser,
+  authorizeUserRoles("admin"),
+  handleBlockUser
+);
+
 
 router.delete("/:id", authenticateUser, handleDeleteUser);
 module.exports = router;

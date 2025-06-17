@@ -140,6 +140,11 @@ async function handleLoginUser(req, res) {
       return res.status(400).json({ message: "Invalid user credentials" });
     }
 
+    // === Check if user is blocked ===
+    if (dbUser.isBlocked) {
+      return res.status(403).json({ message: "Your account has been blocked. Contact admin." });
+    }
+
     // === Check if password matches ===
     const isPasswordMatched = await bcrypt.compare(password, dbUser.password);
 
@@ -171,6 +176,7 @@ async function handleLoginUser(req, res) {
     res.status(500).json({ message: "Server error during login" });
   }
 }
+
 
 async function handleGetUserProfile(req, res) {
   try {
@@ -326,10 +332,64 @@ async function handleDeleteUser(req, res) {
   }
 }
 
+
+const handleBlockUser = async (req, res) => {
+  const { userId } = req.params;
+  const adminId = req.user._id;
+  const adminRole = req.user.role;
+
+  // Only admin can block users
+  if (adminRole !== "admin") {
+    return res.status(403).json({ message: "Access denied. Only admin can block users." });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    if (user.isBlocked) {
+      return res.status(400).json({ message: "User is already blocked." });
+    }
+
+    // Block the user
+    user.isBlocked = true;
+    await user.save();
+
+    // Handle student-specific clean-up
+    if (user.role === "student") {
+      await Application.updateMany(
+        { student: user._id, status: "pending" },
+        { $set: { status: "rejected" } }
+      );
+    }
+
+    // Handle client-specific clean-up
+    if (user.role === "client") {
+      await Project.updateMany(
+        {
+          createdBy: user._id,
+          status: { $in: ["open", "in-progress"] },
+        },
+        { $set: { status: "cancelled" } }
+      );
+    }
+
+    return res.status(200).json({ message: "User blocked successfully." });
+  } catch (err) {
+    console.error("Error blocking user:", err);
+    return res.status(500).json({ message: "Server error." });
+  }
+};
+
+
+
+
 module.exports = {
   handleRegisterUser,
   handleLoginUser,
   handleGetUserProfile,
   handleUpdateUserProfile,
   handleDeleteUser,
+  handleBlockUser
+  
 };
