@@ -11,8 +11,7 @@ const {
   handleDeleteUser,
   handleGetUserProfile,
   handleUpdateUserProfile,
-  handleBlockUser,
-  handleUnblockUser
+  handleToggleBlockUser,
 } = require("../controllers/user.controller");
 
 const router = express.Router();
@@ -32,21 +31,15 @@ router
     handleUpdateUserProfile
   );
 
-  router.put(
-  "/block/:userId",
-  authenticateUser,
-  authorizeUserRoles("admin"),
-  handleBlockUser
-);
-router.put(
-  "/unblock/:userId",
-  authenticateUser,
-  authorizeUserRoles("admin"),
-  handleUnblockUser
-  
-);
-
-
-
+// User deletion route
 router.delete("/:id", authenticateUser, handleDeleteUser);
+
+// Admin routes for user management
+router.put(
+  "/:id/toggle-block",
+  authenticateUser,
+  authorizeUserRoles("admin"),
+  handleToggleBlockUser
+);
+
 module.exports = router;

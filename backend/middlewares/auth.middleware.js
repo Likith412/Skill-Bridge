@@ -1,8 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 
-
-
 async function authenticateUser(req, res, next) {
   const authHeader = req.headers.authorization;
 
@@ -20,8 +18,8 @@ async function authenticateUser(req, res, next) {
       return res.status(401).json({ message: "Not Authenticated" });
     }
 
-    // 🚫 Block check — only for non-admins
-    if (dbUser.isBlocked && dbUser.role !== "admin") {
+    // Block check — only for non-admins
+    if (dbUser.role !== "admin" && dbUser.isBlocked) {
       return res.status(403).json({ message: "Your account is blocked. Access denied." });
     }
 
@@ -32,8 +30,6 @@ async function authenticateUser(req, res, next) {
     return res.status(401).json({ message: "Not Authenticated" });
   }
 }
-
-module.exports = authenticateUser;
 
 function authorizeUserRoles(...allowedRoles) {
   return (req, res, next) => {

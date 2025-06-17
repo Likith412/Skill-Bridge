@@ -97,7 +97,6 @@ async function handleRegisterUser(req, res) {
       email,
       password: hashedPassword,
       role,
-      ...(role !== "admin" && { isBlocked: false }), // Admins are never blocked
       ...(role === "student" && { studentProfile: parsedStudentProfile }),
       ...(role === "client" && { clientProfile: parsedClientProfile }),
     });
@@ -142,7 +141,9 @@ async function handleLoginUser(req, res) {
 
     // === Check if user is blocked ===
     if (dbUser.isBlocked) {
-      return res.status(403).json({ message: "Your account has been blocked. Contact admin." });
+      return res
+        .status(403)
+        .json({ message: "Your account has been blocked. Contact admin." });
     }
 
     // === Check if password matches ===
@@ -176,7 +177,6 @@ async function handleLoginUser(req, res) {
     res.status(500).json({ message: "Server error during login" });
   }
 }
-
 
 async function handleGetUserProfile(req, res) {
   try {
@@ -332,90 +332,101 @@ async function handleDeleteUser(req, res) {
   }
 }
 
-
-const handleBlockUser = async (req, res) => {
-  const { userId } = req.params;
-  const adminId = req.user._id;
-  const adminRole = req.user.role;
-
-  // Only admin can block users
-  if (adminRole !== "admin") {
-    return res.status(403).json({ message: "Access denied. Only admin can block users." });
-  }
-
+async function handleToggleBlockUser(req, res) {
   try {
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found." });
+    const { id: userId } = req.params;
+    const { _id: adminId } = req.user;
 
-    if (user.isBlocked) {
-      return res.status(400).json({ message: "User is already blocked." });
+    // === Validate mongoDB ObjectId ===
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "User not found" });
     }
 
-    // Block the user
-    user.isBlocked = true;
-    await user.save();
-
-    // Handle student-specific clean-up
-    if (user.role === "student") {
-      await Application.updateMany(
-        { student: user._id, status: "pending" },
-        { $set: { status: "rejected" } }
-      );
+    // === Fetch user from DB ===
+    const dbUser = await User.findById(userId).lean();
+    if (!dbUser) {
+      return res.status(404).json({ message: "User not found" });
     }
 
-    // Handle client-specific clean-up
-    if (user.role === "client") {
-      await Project.updateMany(
-        {
-          createdBy: user._id,
+    if (!req.body) {
+      return res.status(400).json({ message: "Request body is missing" });
+    }
+
+    const { action } = req.body; // "block" or "unblock"
+
+    // === Validate action ===
+    if (!["block", "unblock"].includes(action)) {
+      return res
+        .status(400)
+        .json({ message: "Invalid action. Must be 'block' or 'unblock'" });
+    }
+
+    // === Prevent blocking/unblocking self (admin) ===
+    if (userId.toString() === adminId.toString()) {
+      return res.status(403).json({ message: "Cannot modify block status for yourself" });
+    }
+
+    // === Determine current block status and desired action ===
+    const isCurrentlyBlocked = dbUser.isBlocked;
+    const shouldBlock = action === "block";
+
+    // === Check if the action is redundant ===
+    if (shouldBlock && isCurrentlyBlocked) {
+      return res.status(400).json({ message: "User is already blocked" });
+    }
+    if (!shouldBlock && !isCurrentlyBlocked) {
+      return res.status(400).json({ message: "User is not blocked" });
+    }
+
+    // === Perform the update ===
+    await User.findByIdAndUpdate(userId, { isBlocked: shouldBlock }, { new: true });
+
+    // === If blocking, clean up related data ===
+    if (shouldBlock) {
+      if (dbUser.role === "student") {
+        // Reject all pending applications for the student
+        await Application.updateMany(
+          { student: userId, status: "pending" },
+          { status: "suspended" }
+        );
+      }
+
+      // If blocking a client, cancel all open/in-progress projects
+      if (dbUser.role === "client") {
+        // Delete all applications for the client's projects
+        const projects = await Project.find({
+          createdBy: userId,
           status: { $in: ["open", "in-progress"] },
-        },
-        { $set: { status: "cancelled" } }
-      );
+        });
+        const projectIds = projects.map(project => project._id);
+
+        // Suspend all applications for the client's projects
+        await Application.updateMany(
+          { project: { $in: projectIds } },
+          { status: "suspended" }
+        );
+
+        // Cancel all open/in-progress projects
+        await Project.updateMany(
+          {
+            createdBy: dbUser._id,
+            status: { $in: ["open", "in-progress"] },
+          },
+          { status: "cancelled" }
+        );
+      }
     }
 
-    return res.status(200).json({ message: "User blocked successfully." });
+    return res
+      .status(200)
+      .json({ message: `User ${shouldBlock ? "blocked" : "unblocked"} successfully.` });
   } catch (err) {
-    console.error("Error blocking user:", err);
-    return res.status(500).json({ message: "Server error." });
+    console.error("Error toggling block status:", err);
+    return res
+      .status(500)
+      .json({ message: "Server error while toggling user block status." });
   }
-};
-
-const handleUnblockUser = async (req, res) => {
-  const { userId } = req.params;
-  const adminId = req.user._id;
-  const adminRole = req.user.role;
-
-  if (adminRole !== "admin") {
-    return res.status(403).json({ message: "Access denied. Only admin can unblock users." });
-  }
-
-  try {
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found." });
-
-    if (!user.isBlocked) {
-      return res.status(400).json({ message: "User is not blocked." });
-    }
-
-    user.isBlocked = false;
-
-   
-
-    await user.save();
-
-    return res.status(200).json({ message: "User unblocked successfully." });
-  } catch (err) {
-    console.error("Error unblocking user:", err);
-    return res.status(500).json({ message: "Server error." });
-  }
-};
-
-
-
-
-
-
+}
 
 module.exports = {
   handleRegisterUser,
@@ -423,7 +434,5 @@ module.exports = {
   handleGetUserProfile,
   handleUpdateUserProfile,
   handleDeleteUser,
-  handleBlockUser,
-  handleUnblockUser
-  
+  handleToggleBlockUser,
 };
