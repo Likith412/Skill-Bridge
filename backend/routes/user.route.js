@@ -11,7 +11,8 @@ const {
   handleDeleteUser,
   handleGetUserProfile,
   handleUpdateUserProfile,
-  handleBlockUser
+  handleBlockUser,
+  handleUnblockUser
 } = require("../controllers/user.controller");
 
 const router = express.Router();
@@ -37,6 +38,14 @@ router
   authorizeUserRoles("admin"),
   handleBlockUser
 );
+router.put(
+  "/unblock/:userId",
+  authenticateUser,
+  authorizeUserRoles("admin"),
+  handleUnblockUser
+  
+);
+
 
 
 router.delete("/:id", authenticateUser, handleDeleteUser);

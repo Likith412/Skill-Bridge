@@ -381,6 +381,39 @@ const handleBlockUser = async (req, res) => {
   }
 };
 
+const handleUnblockUser = async (req, res) => {
+  const { userId } = req.params;
+  const adminId = req.user._id;
+  const adminRole = req.user.role;
+
+  if (adminRole !== "admin") {
+    return res.status(403).json({ message: "Access denied. Only admin can unblock users." });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    if (!user.isBlocked) {
+      return res.status(400).json({ message: "User is not blocked." });
+    }
+
+    user.isBlocked = false;
+
+   
+
+    await user.save();
+
+    return res.status(200).json({ message: "User unblocked successfully." });
+  } catch (err) {
+    console.error("Error unblocking user:", err);
+    return res.status(500).json({ message: "Server error." });
+  }
+};
+
+
+
+
 
 
 
@@ -390,6 +423,7 @@ module.exports = {
   handleGetUserProfile,
   handleUpdateUserProfile,
   handleDeleteUser,
-  handleBlockUser
+  handleBlockUser,
+  handleUnblockUser
   
 };

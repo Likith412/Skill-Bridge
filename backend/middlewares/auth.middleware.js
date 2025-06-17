@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 
+
+
 async function authenticateUser(req, res, next) {
   const authHeader = req.headers.authorization;
 
@@ -18,13 +20,20 @@ async function authenticateUser(req, res, next) {
       return res.status(401).json({ message: "Not Authenticated" });
     }
 
-    req.user = decoded; // Now you can access user details using req object
+    // 🚫 Block check — only for non-admins
+    if (dbUser.isBlocked && dbUser.role !== "admin") {
+      return res.status(403).json({ message: "Your account is blocked. Access denied." });
+    }
+
+    req.user = decoded;
     next();
   } catch (err) {
     console.log(err);
     return res.status(401).json({ message: "Not Authenticated" });
   }
 }
+
+module.exports = authenticateUser;
 
 function authorizeUserRoles(...allowedRoles) {
   return (req, res, next) => {
