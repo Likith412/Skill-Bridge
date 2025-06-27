@@ -1,17 +1,14 @@
-import { useEffect } from "react";
+import React from 'react';
+import ErrorPage from './screens/ErrorPage/ErrorPage';
+import Footer from './components/footer';
 
-function App() {
-  const getData = async () => {
-    const response = await fetch("/api", { method: "GET" });
-    const { message } = await response.json();
-    console.log(message);
-  };
-
-  useEffect(() => {
-    getData();
-  }, []);
-
-  return null;
+const App = () => {
+  return (
+    <div>
+      <ErrorPage />
+      <Footer />
+    </div>
+  );
 }
 
 export default App;
