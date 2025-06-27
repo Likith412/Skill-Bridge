@@ -200,7 +200,11 @@ const handleGetApplicationsByStudent = async (req, res) => {
 };
 
 const handleGetApplicationsByProject = async (req, res) => {
-  const { projectId } = req.params;
+  if (!req.body) {
+    res.status(400).json({ message: "Request body is missing" });
+  }
+
+  const { projectId } = req.body;
 
   // === Validate MongoDB ObjectId ===
   if (!mongoose.Types.ObjectId.isValid(projectId)) {
@@ -245,7 +249,7 @@ const handleGetApplicationsByProject = async (req, res) => {
   }
 };
 
-const handleGetSingleApplication = async (req, res) => {
+const handleGetSpecificApplication = async (req, res) => {
   const { id: applicationId } = req.params;
 
   // === Validate MongoDB ObjectId ===
@@ -295,5 +299,5 @@ module.exports = {
   handleUpdateApplicationStatus,
   handleGetApplicationsByStudent,
   handleGetApplicationsByProject,
-  handleGetSingleApplication,
+  handleGetSpecificApplication,
 };

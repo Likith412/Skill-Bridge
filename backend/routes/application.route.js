@@ -8,7 +8,7 @@ const {
   handleUpdateApplicationStatus,
   handleGetApplicationsByProject,
   handleGetApplicationsByStudent,
-  handleGetSingleApplication,
+  handleGetSpecificApplication,
 } = require("../controllers/application.controller");
 
 const { resumeUpload } = require("../middlewares/multer.middleware");
@@ -16,31 +16,32 @@ const { resumeUpload } = require("../middlewares/multer.middleware");
 const router = express.Router();
 
 // only student can create
-router.post(
-  "/",
-  authorizeUserRoles("student"),
-  resumeUpload.single("resume"),
-  handleCreateApplication
-);
+router
+  .route("/")
+  .post(
+    authorizeUserRoles("student"),
+    resumeUpload.single("resume"),
+    handleCreateApplication
+  )
+  // only client and admin can view applications
+  .get(authorizeUserRoles("client", "admin"), handleGetApplicationsByProject);
 
 // only student can delete
-router.delete("/:id", authorizeUserRoles("student"), handleDeleteApplication);
+router
+  .route("/:id")
+  .delete(authorizeUserRoles("student"), handleDeleteApplication)
+  .get(authorizeUserRoles("client", "admin"), handleGetSpecificApplication);
 
 // only client can change the application status
 router.patch("/:id/status", authorizeUserRoles("client"), handleUpdateApplicationStatus);
 
-router.get("/student", authorizeUserRoles("student"), handleGetApplicationsByStudent);
-
+// only student can view his/her's applications
 router.get(
-  "/project/:projectId",
-  authorizeUserRoles("client", "admin"),
-  handleGetApplicationsByProject
-);
-router.get(
-  "/application/:applicationId",
-  authorizeUserRoles("client"),
-  handleGetSingleApplication
+  "/student",
+  authorizeUserRoles("student", "admin"),
+  handleGetApplicationsByStudent
 );
 
+// only client can view a particular application
 
 module.exports = router;

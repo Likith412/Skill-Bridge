@@ -9,6 +9,8 @@ const {
 
 const router = express.Router();
 
+router.post("/", authorizeUserRoles("client"), handleCreateReview); // only client can create a review for students assigned to a project
+
 router
   .route("/:id")
   .get(handleGetSpecificReview) // anyone can view a specific review

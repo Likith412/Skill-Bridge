@@ -6,7 +6,11 @@ const User = require("../models/user.model");
 const Application = require("../models/application.model");
 
 async function handleCreateReview(req, res) {
-  const { id: projectId } = req.params;
+  if (!req.body) {
+    return res.status(400).json({ message: "Request body is missing" });
+  }
+
+  const { projectId } = req.body;
 
   // === Validate MongoDB ObjectId ===
   if (!mongoose.Types.ObjectId.isValid(projectId)) {
