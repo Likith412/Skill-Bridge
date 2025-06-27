@@ -1,12 +1,14 @@
-import React from 'react'
-import ErrorPage from './Components/ErrorPage/ErrorPage'
+import React from 'react';
+import ErrorPage from './screens/ErrorPage/ErrorPage';
+import Footer from './components/footer';
 
 const App = () => {
   return (
     <div>
-      <ErrorPage/>
+      <ErrorPage />
+      <Footer />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
