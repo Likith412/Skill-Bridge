@@ -26,10 +26,11 @@ router
   // only client and admin can view applications
   .get(authorizeUserRoles("client", "admin"), handleGetApplicationsByProject);
 
-// only student can delete
 router
   .route("/:id")
+  // only student can delete
   .delete(authorizeUserRoles("student"), handleDeleteApplication)
+  // only client and admin can view a particular application
   .get(authorizeUserRoles("client", "admin"), handleGetSpecificApplication);
 
 // only client can change the application status
@@ -41,7 +42,5 @@ router.get(
   authorizeUserRoles("student", "admin"),
   handleGetApplicationsByStudent
 );
-
-// only client can view a particular application
 
 module.exports = router;

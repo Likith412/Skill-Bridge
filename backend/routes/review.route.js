@@ -2,6 +2,7 @@ const express = require("express");
 
 const { authorizeUserRoles } = require("../middlewares/auth.middleware");
 const {
+  handleCreateReview,
   handleUpdateSpecificReview,
   handleDeleteSpecificReview,
   handleGetSpecificReview,
@@ -9,12 +10,16 @@ const {
 
 const router = express.Router();
 
-router.post("/", authorizeUserRoles("client"), handleCreateReview); // only client can create a review for students assigned to a project
+// only client can create a review for students assigned to a project
+router.post("/", authorizeUserRoles("client"), handleCreateReview);
 
 router
   .route("/:id")
-  .get(handleGetSpecificReview) // anyone can view a specific review
-  .put(authorizeUserRoles("client"), handleUpdateSpecificReview) // only client can update a review
-  .delete(authorizeUserRoles("client"), handleDeleteSpecificReview); // only client can delete a review
+  // anyone can view a specific review
+  .get(handleGetSpecificReview)
+  // only client can update a review
+  .put(authorizeUserRoles("client"), handleUpdateSpecificReview)
+  // only client can delete a review
+  .delete(authorizeUserRoles("client"), handleDeleteSpecificReview);
 
 module.exports = router;
