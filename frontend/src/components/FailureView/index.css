@@ -1,0 +1,78 @@
+.failure-view-page {
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  font-family: var(--font-family-base);
+}
+
+.failure-view-card {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--card-shadow);
+  border-radius: var(--border-radius);
+  padding: var(--space-xl);
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+}
+
+.failure-view-icon {
+  font-size: var(--font-size-2xl);
+  margin-bottom: var(--space-md);
+}
+
+.failure-view-title {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-heading);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-sm);
+}
+
+.failure-view-message {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-body);
+  margin-bottom: var(--space-lg);
+}
+
+.failure-view-button {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border: none;
+  font-size: var(--font-size-xs);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--button-radius);
+  font-weight: var(--font-weight-regular);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.failure-view-button:hover {
+  background-color: var(--color-link-hover);
+}
+
+/* 📱 Tablet (768px and above) */
+@media (min-width: 768px) {
+  .failure-view-card {
+    padding: var(--space-2xl);
+  }
+
+  .failure-view-icon {
+    font-size: var(--font-size-3xl);
+  }
+
+  .failure-view-title {
+    font-size: var(--font-size-xl);
+  }
+
+  .failure-view-message {
+    font-size: var(--font-size-sm);
+  }
+
+  .failure-view-button {
+    font-size: var(--font-size-sm);
+    padding: var(--space-sm) var(--space-lg);
+  }
+}

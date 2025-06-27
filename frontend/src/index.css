@@ -1,69 +1,61 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Reem+Kufi:wght@400..700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Reem+Kufi:wght@400..700&display=swap");
 :root {
   /* 🎨 Brand Colors */
-  --color-primary: #1e88e5;            /* Primary blue - buttons, links, highlights */
-  --color-white: #ffffff;              /* Pure white - backgrounds, text on dark */
-  --color-bg: #f2fafa;                 /* Soft background color for light sections */
-  --color-border: #e0e0e0;   
-            /* Neutral border for cards, inputs */
+  --color-primary: #1e88e5; /* Primary blue - buttons, links, highlights */
+  --color-white: #ffffff; /* Pure white - backgrounds, text on dark */
+  --color-bg: #f2fafa; /* Soft background color for light sections */
+  --color-border: #e0e0e0;
+  /* Neutral border for cards, inputs */
 
   /* 📝 Text Colors */
-  --color-text-heading: #252525;       /* Headings and titles - bold and dark */
-  --color-text-body: #9d9d9d;          /* Body or paragraph text - soft gray */
-  --color-muted: #999999;              /* Subtle/inactive text - hints, notes */
-
+  --color-text-heading: #252525; /* Headings and titles - bold and dark */
+  --color-text-body: #7b7979; /* Body or paragraph text - soft gray */
+  --color-muted: #999999; /* Subtle/inactive text - hints, notes */
+  --color-error: #ff0000; /* Error text - red */
   /* 🧭 State Colors */
-  --color-link-hover: #0d6efd;         /* Link hover/focus state - vibrant blue */
-  --color-shadow: rgba(0, 0, 0, 0.1);  /* Default shadow for cards, buttons */
+  --color-link-hover: #0d6efd; /* Link hover/focus state - vibrant blue */
+  --color-shadow: rgba(0, 0, 0, 0.1); /* Default shadow for cards, buttons */
 
   /* 🔤 Typography (Mobile-first scale) */
-  --font-size-xs: 0.75rem;             /* 12px - small captions */
-  --font-size-sm: 0.875rem;            /* 14px - label text */
-  --font-size-base: 1rem;              /* 16px - default body text */
-  --font-size-lg: 1.25rem;             /* 20px - subheadings */
-  --font-size-xl: 1.5rem;              /* 24px - section headings */
-  --font-size-2xl: 2rem;               /* 32px - page titles, hero text */
-  --font-size-3xl:2.5rem;
+  --font-size-xs: 0.75rem; /* 12px - small captions */
+  --font-size-sm: 0.875rem; /* 14px - label text */
+  --font-size-base: 1rem; /* 16px - default body text */
+  --font-size-lg: 1.25rem; /* 20px - subheadings */
+  --font-size-xl: 1.5rem; /* 24px - section headings */
+  --font-size-2xl: 2rem; /* 32px - page titles, hero text */
+  --font-size-3xl: 2.5rem; /* 40px - page titles, hero text */
+  --font-size-4xl: 3rem; /* 48px - page titles, hero text */
 
-  --font-weight-regular: 400;          /* Normal weight for body text */
-  --font-weight-bold: 700;             /* Bold for headings or emphasis */
+  --font-weight-regular: 400; /* Normal weight for body text */
+  --font-weight-bold: 700; /* Bold for headings or emphasis */
 
-  --font-family-base: 'Segoe UI', sans-serif; /* Base font family */
+  --font-family-base: "Segoe UI", sans-serif; /* Base font family */
 
   /* 📐 Spacing Scale (8px base unit) */
-  --space-xxs: 0.25rem;                /* 4px */
-  --space-xs: 0.5rem;                  /* 8px */
-  --space-sm: 0.75rem;                 /* 12px */
-  --space-md: 1rem;                    /* 16px */
-  --space-lg: 1.5rem;                  /* 24px */
-  --space-xl: 2rem;                    /* 32px */
-  --space-2xl: 3rem;                   /* 48px */
+  --space-xxs: 0.25rem; /* 4px */
+  --space-xs: 0.5rem; /* 8px */
+  --space-sm: 0.75rem; /* 12px */
+  --space-md: 1rem; /* 16px */
+  --space-lg: 1.5rem; /* 24px */
+  --space-xl: 2rem; /* 32px */
+  --space-2xl: 3rem; /* 48px */
 
   /* 🧩 UI Elements */
-  --border-radius: 0.75rem;            /* 12px - rounded corners for cards */
-  --button-radius: 0.5rem;             /* 8px - rounded buttons */
-  --card-shadow: 0 4px 12px var(--color-shadow);  /* Card elevation */
+  --border-radius: 0.75rem; /* 12px - rounded corners for cards */
+  --button-radius: 0.5rem; /* 8px - rounded buttons */
+  --card-shadow: 0 4px 12px var(--color-shadow); /* Card elevation */
   --input-shadow: 0px 3px 6px rgba(0, 0, 0, 0.04); /* Soft input shadow */
 
   /* 🧱 Layering */
-  --z-header: 1000;                    /* Header/navbar layering */
-  --z-modal: 1050;                     /* Modal/dialog layering */
-
-  
-  /* 📱 Responsive Breakpoints */
-  --breakpoint-sm: 576px;   /* Small devices (e.g., phones) */
-  --breakpoint-md: 768px;   /* Medium devices (e.g., tablets) */
-  --breakpoint-lg: 992px;   /* Large devices (e.g., small laptops) */
-
-
+  --z-header: 1000; /* Header/navbar layering */
+  --z-modal: 1050; /* Modal/dialog layering */
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: "Poppins",sans-serif;
+  font-family: "Poppins", sans-serif;
 }
 
 .container {
@@ -100,4 +92,3 @@
     max-width: 1200px;
   }
 }
-

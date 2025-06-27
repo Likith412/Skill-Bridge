@@ -1,11 +1,10 @@
-import React from 'react';
-import ErrorPage from './screens/ErrorPage/ErrorPage';
-import Footer from './components/footer';
+import FailureView from "./components/FailureView";
+import Footer from "./components/Footer";
 
-const App = () => {
+function App() {
   return (
     <div>
-      <ErrorPage />
+      <FailureView />
       <Footer />
     </div>
   );

@@ -1,14 +1,14 @@
 /* Modern, elegant footer styling */
- .footer {
+.footer {
   background: var(--color-bg);
   color: #232526;
   padding: var(--space-xl) 0 var(--space-lg);
   margin-top: var(--space-2xl);
-  box-shadow: 0 8px 32px 0 rgba(60,60,60,0.08);
+  box-shadow: 0 8px 32px 0 rgba(60, 60, 60, 0.08);
   position: relative;
   overflow: hidden;
   border-radius: 2rem 2rem 0 0;
-  font-family: 'Poppins', 'Segoe UI', sans-serif;
+  font-family: "Poppins", "Segoe UI", sans-serif;
 }
 
 .footer-container {
@@ -53,7 +53,7 @@
   margin-bottom: var(--space-xs);
   color: #232526;
   letter-spacing: 0.5px;
-  font-family: 'Reem Kufi', 'Poppins', sans-serif;
+  font-family: "Reem Kufi", "Poppins", sans-serif;
 }
 
 .footer-desc {
@@ -61,7 +61,7 @@
   opacity: 0.95;
   font-size: var(--font-size-base);
   margin-bottom: var(--space-xs);
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
 }
 
 .footer-links {
@@ -85,7 +85,8 @@
   border-bottom: 2px solid transparent;
   z-index: 1;
 }
-.footer-links a:hover, .footer-links a:focus {
+.footer-links a:hover,
+.footer-links a:focus {
   color: #1e88e5;
   border-bottom: 2px solid #1e88e5;
   background: none;
@@ -109,7 +110,7 @@
   justify-content: center;
   padding: 0.25em;
   margin-right: 0.2em;
-  box-shadow: 0 2px 8px rgba(30,30,30,0.06);
+  box-shadow: 0 2px 8px rgba(30, 30, 30, 0.06);
 }
 .footer-social a:hover {
   color: #fff;
