@@ -1,4 +1,6 @@
 const express = require("express");
+const cors = require("cors");
+
 require("dotenv").config();
 
 const { connectToMongoDB } = require("./connection");
@@ -18,6 +20,12 @@ connectToMongoDB(process.env.MONGO_URI)
   .catch(err => console.error("MongoDB connection error", err));
 
 // Middlewares
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Router Registrations
@@ -25,6 +33,11 @@ app.use("/api/users", userRouter);
 app.use("/api/projects", authenticateUser, projectRouter);
 app.use("/api/applications", authenticateUser, applicationRouter);
 app.use("/api/reviews", authenticateUser, reviewRouter);
+
+// Protected route
+app.get("/api/protected", authenticateUser, (req, res) => {
+  res.status(200).json({ message: "authorised", user: req.user });
+});
 
 const PORT = process.env.PORT || 8000;
 

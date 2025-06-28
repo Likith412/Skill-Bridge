@@ -2,13 +2,11 @@
 .footer {
   background: var(--color-bg);
   color: #232526;
-  padding: var(--space-xl) 0 var(--space-lg);
+  padding-top: var(--space-xl);
   margin-top: var(--space-2xl);
-  box-shadow: 0 8px 32px 0 rgba(60, 60, 60, 0.08);
   position: relative;
   overflow: hidden;
   border-radius: 2rem 2rem 0 0;
-  font-family: "Poppins", "Segoe UI", sans-serif;
 }
 
 .footer-container {
@@ -47,8 +45,17 @@
   object-fit: contain;
 }
 
-.footer-title {
+.footer-logo-text {
+  margin: 0;
   font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: #1e88e5;
+  text-align: center;
+  line-height: 48px;
+}
+
+.footer-title {
+  font-size: var(--font-size-lg);
   font-weight: 700;
   margin-bottom: var(--space-xs);
   color: #232526;
@@ -59,7 +66,7 @@
 .footer-desc {
   color: #555;
   opacity: 0.95;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   margin-bottom: var(--space-xs);
   font-family: "Poppins", sans-serif;
 }
@@ -76,7 +83,7 @@
 .footer-links a {
   color: #232526;
   text-decoration: none;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   font-weight: 500;
   border-radius: 0;
   padding: 2px 0;
@@ -94,16 +101,30 @@
   text-decoration: none;
 }
 
+.footer-contact-link {
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+}
+
+.footer-email {
+  color: #0077ff;
+}
+
+.footer-phone {
+  color: #43b581;
+}
+
 .footer-social {
   display: flex;
   gap: var(--space-md);
   margin-top: var(--space-xs);
 }
+
 .footer-social a {
   color: #232526;
   background: #e3e9f7;
   border-radius: 50%;
-  font-size: 2em;
+  font-size: var(--font-size-xl);
   transition: color 0.2s, background 0.2s, transform 0.2s;
   display: flex;
   align-items: center;
@@ -120,13 +141,14 @@
 
 .footer-bottom {
   border-top: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
   margin-top: var(--space-xl);
-  padding-top: var(--space-sm);
+  padding: var(--space-sm) 0;
   text-align: center;
   font-size: var(--font-size-sm);
   color: #888;
   letter-spacing: 0.5px;
-  background: #f7f7fa;
+  background: var(--color-white);
 }
 
 @media (min-width: 768px) {

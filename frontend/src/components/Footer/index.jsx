@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import {
   FaGithub,
   FaLinkedin,
@@ -15,11 +15,15 @@ function Footer() {
     <footer className="footer" role="contentinfo">
       <div className="footer-container container">
         <div className="footer-row">
-          <div className="footer-col">
-            <h5 className="footer-title">About Us</h5>
+          <div className="footer-col footer-brand">
+            <div className="footer-logo">
+              <h3 className="footer-logo-text">SB</h3>
+            </div>
+            <h5 className="footer-title">Skill Bridge</h5>
             <p className="footer-desc">
-              We are a team of passionate developers dedicated to building
-              innovative solutions.
+              Connects clients with skilled students through client-created
+              projects, enabling students to gain hands-on experience while
+              helping clients bring their ideas to life.
             </p>
           </div>
           <div className="footer-col">
@@ -48,7 +52,7 @@ function Footer() {
               <FaEnvelope style={{ marginRight: "8px", color: "#0077ff" }} />
               <a
                 href="mailto:skill-bridge@gmail.com"
-                style={{ color: "#0077ff", fontWeight: 500 }}
+                className="footer-contact-link footer-mail"
               >
                 skill-bridge@gmail.com
               </a>
@@ -57,7 +61,7 @@ function Footer() {
               <FaPhone style={{ marginRight: "8px", color: "#43b581" }} />
               <a
                 href="tel:+1234567890"
-                style={{ color: "#43b581", fontWeight: 500 }}
+                className="footer-contact-link footer-phone"
               >
                 +1 234 567 890
               </a>
@@ -98,9 +102,9 @@ function Footer() {
             </div>
           </div>
         </div>
-        <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} All rights reserved.</p>
-        </div>
+      </div>
+      <div className="footer-bottom">
+        <p>&copy; {new Date().getFullYear()} All rights reserved.</p>
       </div>
     </footer>
   );
